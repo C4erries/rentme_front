@@ -1,0 +1,73 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx,js,jsx}'],
+  theme: {
+    extend: {
+      colors: {
+        'dusty-mauve': {
+          50: '#f3f1f3',
+          100: '#e7e4e6',
+          200: '#d0c8cd',
+          300: '#b8adb4',
+          400: '#a0929c',
+          500: '#887783',
+          600: '#6d5f69',
+          700: '#52474e',
+          800: '#372f34',
+          900: '#1b181a',
+          950: '#131112',
+        },
+        'khaki-beige': {
+          50: '#f4f3f1',
+          100: '#e8e7e3',
+          200: '#d2d0c6',
+          300: '#bbb8aa',
+          400: '#a4a08e',
+          500: '#8e8871',
+          600: '#716d5b',
+          700: '#555244',
+          800: '#39372d',
+          900: '#1c1b17',
+          950: '#141310',
+        },
+        'dry-sage': {
+          50: '#f6f6ee',
+          100: '#eeeedd',
+          200: '#dddcbb',
+          300: '#cccb99',
+          400: '#bbba77',
+          500: '#aaa855',
+          600: '#888744',
+          700: '#666533',
+          800: '#444322',
+          900: '#222211',
+          950: '#18180c',
+        },
+        cream: {
+          50: '#f9fde8',
+          100: '#f2fad1',
+          200: '#e5f6a2',
+          300: '#d8f174',
+          400: '#cbed45',
+          500: '#bee817',
+          600: '#98ba12',
+          700: '#728b0e',
+          800: '#4c5d09',
+          900: '#262e05',
+          950: '#1b2003',
+        },
+      },
+      fontFamily: {
+        sans: ['"Space Grotesk"', 'Inter', 'ui-sans-serif', 'system-ui'],
+      },
+      boxShadow: {
+        soft: '0 12px 32px rgba(16, 12, 12, 0.08)',
+      },
+      container: {
+        center: true,
+        padding: '1rem',
+      },
+    },
+  },
+  plugins: [],
+}
