@@ -1,7 +1,7 @@
 const navLinks = [
-  { label: 'Каталог', hint: 'лоты к заселению в этом месяце' },
-  { label: 'Сервисы', hint: 'консьерж, юристы, клининг' },
-  { label: 'Районы', hint: 'гиды и маркеры маршрутов' },
+  { label: 'Каталог', hint: 'квартиры и дома от проверенных хостов' },
+  { label: 'Как это работает', hint: 'поиск → просмотр → бронирование' },
+  { label: 'Хостам', hint: 'публикация объявлений и календарь' },
 ]
 
 export function Header() {
@@ -11,7 +11,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold tracking-tight text-dusty-mauve-900">Rentme</span>
           <span className="hidden text-xs text-dusty-mauve-500 sm:inline">
-            клубная аренда без комиссии
+            маркетплейс аренды жилья
           </span>
         </div>
 

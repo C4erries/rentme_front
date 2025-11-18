@@ -59,3 +59,46 @@ export interface Listing {
   thumbnail: string
   rating?: number
 }
+
+export interface ListingAddress {
+  line1: string
+  line2: string
+  city: string
+  country: string
+  lat: number
+  lon: number
+}
+
+export interface AvailabilityWindow {
+  from: string
+  to: string
+}
+
+export interface ListingCalendarBlock {
+  from: string
+  to: string
+  reason: string
+}
+
+export interface ListingCalendar {
+  listing_id: string
+  blocks: ListingCalendarBlock[]
+}
+
+export interface ListingOverview {
+  id: string
+  title: string
+  description: string
+  address: ListingAddress
+  amenities: string[]
+  guests_limit: number
+  min_nights: number
+  max_nights: number
+  house_rules: string[]
+  host: {
+    id: string
+  }
+  state: string
+  calendar: ListingCalendar
+  availability_window: AvailabilityWindow
+}

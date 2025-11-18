@@ -3,6 +3,11 @@ import { apiGet, hasApiBaseUrl } from '../lib/api'
 import type { Listing, ListingCatalogResponse, ListingMood, ListingRecord } from '../types/listing'
 
 const FEATURED_LIMIT = 6
+export interface FeaturedListingFilters {
+  city?: string
+  minGuests?: number
+}
+
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
   style: 'currency',
   currency: 'RUB',
@@ -12,29 +17,37 @@ const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80'
 
-export function useFeaturedListings() {
+export function useFeaturedListings(filters: FeaturedListingFilters = {}) {
+  const hasBaseUrl = hasApiBaseUrl()
   const [listings, setListings] = useState<Listing[]>([])
-  const [loading, setLoading] = useState<boolean>(hasApiBaseUrl())
+  const [loading, setLoading] = useState<boolean>(hasBaseUrl)
   const [sourceHint, setSourceHint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const queryPath = useMemo(() => {
-    if (!hasApiBaseUrl()) {
+    if (!hasBaseUrl) {
       return null
     }
     const params = new URLSearchParams({
       limit: String(FEATURED_LIMIT),
       sort: 'rating_desc',
     })
+    if (filters.city) {
+      params.set('city', filters.city)
+    }
+    if (filters.minGuests && filters.minGuests > 0) {
+      params.set('min_guests', String(filters.minGuests))
+    }
     return `/listings?${params.toString()}`
-  }, [])
+  }, [filters.city, filters.minGuests, hasBaseUrl])
 
   useEffect(() => {
     if (!queryPath) {
       setLoading(false)
       setListings([])
-      setError('API не настроен. Установите VITE_API_BASE_URL.')
       setSourceHint(null)
+      setError('API не настроен. Укажите VITE_API_BASE_URL в .env.')
       return
     }
 
@@ -44,12 +57,13 @@ export function useFeaturedListings() {
     async function loadFeatured() {
       try {
         setLoading(true)
+        setError(null)
         const { data, response } = await apiGet<ListingCatalogResponse>(resolvedPath, {
           signal: controller.signal,
         })
         if (!data.items?.length) {
           setListings([])
-          setError('Ничего не нашли для текущих фильтров.')
+          setError('По заданным условиям ничего не нашли — попробуйте изменить фильтры.')
           setSourceHint(null)
           return
         }
@@ -86,9 +100,11 @@ export function useFeaturedListings() {
 
     loadFeatured()
     return () => controller.abort()
-  }, [queryPath])
+  }, [queryPath, reloadToken])
 
-  return { listings, loading, sourceHint, error }
+  const refresh = () => setReloadToken((token) => token + 1)
+
+  return { listings, loading, sourceHint, error, refresh }
 }
 
 function mapListing(card: ListingRecord): Listing {

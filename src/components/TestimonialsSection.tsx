@@ -26,9 +26,9 @@ export function TestimonialsSection() {
   return (
     <section className="container space-y-6 py-12">
       <div className="space-y-2 text-center">
-        <p className="text-sm font-semibold uppercase text-dry-sage-600">отзывы клуба</p>
+        <p className="text-sm font-semibold uppercase text-dry-sage-600">опыт гостей и хостов</p>
         <h2 className="text-2xl font-semibold text-dusty-mauve-900 sm:text-3xl">
-          Люди ценят уход и внимание к деталям
+          Люди ценят прозрачность и внимание к деталям
         </h2>
       </div>
 

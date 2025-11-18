@@ -12,20 +12,20 @@ function CtaPanel() {
     <section className="container py-12">
       <div className="glass-panel flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <p className="text-sm uppercase text-dry-sage-600">готовы к переезду</p>
+          <p className="text-sm uppercase text-dry-sage-600">нужна помощь</p>
           <h3 className="text-2xl font-semibold text-dusty-mauve-900">
-            Назначим видеозвонок и покажем live-тур по квартирам
+            Подключим жильё или расскажем, как бронировать на платформе
           </h3>
           <p className="text-sm text-dusty-mauve-600">
-            Во время звонка куратор поделится экраном с интерактивной картой, проговорит плюсы и риски
-            и отправит все материалы в ваш мессенджер.
+            Опишите формат поездки или объект. Менеджер отправит ссылку на подходящие объявления или
+            активирует личный кабинет хоста.
           </p>
         </div>
         <a
-          href="mailto:care@rentme.app?subject=Rentme%20Club%20-%20Live%20tour"
+          href="mailto:care@rentme.app?subject=Rentme%20Marketplace%20-%20Request"
           className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-center text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
         >
-          Запланировать звонок
+          Оставить заявку
         </a>
       </div>
     </section>

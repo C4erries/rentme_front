@@ -1,27 +1,32 @@
 const stats = [
-  { label: 'Сделок в 2024', value: '312', note: 'без комиссий и сюрпризов' },
-  { label: 'Средний подбор', value: '8 дней', note: 'от брифа до ключей' },
-  { label: 'Проверенные дома', value: '54', note: 'с сервисами уровня отеля' },
+  { label: 'Городов в каталоге', value: '18', note: 'Москва, Петербург, Прага и другие' },
+  { label: 'Хостов на платформе', value: '640+', note: 'верифицированы документами' },
+  { label: 'Диапазон аренды', value: '3–365 ночей', note: 'кратко и надолго' },
 ] as const
 
-const highlights = ['консьерж 24/7', 'юридический щит', 'цифровая сделка', 'guides по районам']
+const highlights = [
+  'кратко- и долгосрочные поездки',
+  'единый календарь доступности',
+  'цифровое бронирование',
+  'аналитика цен',
+]
 
 const conciergeContacts = [
-  { label: 'Телефон', value: '+7 495 123‑44‑88', href: 'tel:+74951234488' },
-  { label: 'Telegram', value: '@rentme_care', href: 'https://t.me/rentme' },
-  { label: 'Mail', value: 'hello@rentme.app', href: 'mailto:hello@rentme.app' },
+  { label: 'Чат поддержки', value: '@rentme_support', href: 'https://t.me/rentme' },
+  { label: 'Почта', value: 'support@rentme.app', href: 'mailto:support@rentme.app' },
+  { label: 'Для хостов', value: 'hosts@rentme.app', href: 'mailto:hosts@rentme.app' },
 ]
 
 const viewingCard = {
-  slot: 'Среда, 18:40',
-  address: 'Остоженка · клубный дом “Buran”',
-  mood: 'двухуровневый лофт · 118 м²',
+  slot: 'Четверг, 19:00',
+  address: 'Каталог · Riverside Loft',
+  mood: 'loft · 3 спальни · 122 м²',
 }
 
 const serviceSteps = [
-  'Снимаем бриф и подбираем 3–5 квартир в приложении',
-  'Проверяем историю собственника и ЖК',
-  'Организуем показы и цифровое подписание договора',
+  'Выбираете город, дату и формат проживания',
+  'Созваниваетесь или чатитесь с хостом через Rentme',
+  'Бронируете и подписываете договор онлайн',
 ]
 
 export function HeroSection() {
@@ -29,15 +34,15 @@ export function HeroSection() {
     <section className="container grid gap-8 py-10 md:grid-cols-2 md:items-center md:gap-12 md:py-16">
       <div className="space-y-6">
         <span className="inline-flex items-center gap-2 rounded-full border border-dry-sage-200 bg-dry-sage-50/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-dry-sage-700">
-          club service · городские аренды без стресса
+          marketplace · жильё от verified хостов
         </span>
         <div className="space-y-4">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight text-dusty-mauve-900 sm:text-4xl lg:text-5xl">
-            Подбираем квартиры с сервисом отеля и поддержкой личного куратора
+            Маркетплейс для поиска и бронирования жилья
           </h1>
           <p className="text-base text-dusty-mauve-600 sm:text-lg">
-            Rentme берёт на себя бриф, переговоры и проверку юридических рисков. Вы получаете
-            подборку домов под свой ритм и переезжаете без комиссий и спешки.
+            Rentme соединяет гостей и хостов: публикуем проверенные объявления с календарями,
+            показываем честную стоимость и даём бронировать онлайн на нужный срок.
           </p>
         </div>
 
@@ -101,11 +106,13 @@ export function HeroSection() {
 
         <div className="glass-panel space-y-5 p-5">
           <div>
-            <p className="text-sm uppercase text-dry-sage-600">Контакт куратора</p>
+            <p className="text-sm uppercase text-dry-sage-600">Служба поддержки</p>
             <p className="text-base font-semibold text-dusty-mauve-900">
-              Вера · руководитель клиентского сервиса
+              Команда поддержки Rentme
             </p>
-            <p className="text-sm text-dusty-mauve-600">ответит на запрос в течение 10 минут</p>
+            <p className="text-sm text-dusty-mauve-600">
+              отвечает на запросы хостов и гостей в течение 10 минут
+            </p>
           </div>
           <dl className="space-y-2 text-sm text-dusty-mauve-700">
             {conciergeContacts.map((contact) => (
