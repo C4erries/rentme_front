@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiGet, hasApiBaseUrl } from '../lib/api'
-import { mockListings } from '../data/mockListings'
 import type { Listing, ListingCatalogResponse, ListingMood, ListingRecord } from '../types/listing'
 
 const FEATURED_LIMIT = 6
@@ -14,7 +13,7 @@ const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80'
 
 export function useFeaturedListings() {
-  const [listings, setListings] = useState<Listing[]>(mockListings)
+  const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState<boolean>(hasApiBaseUrl())
   const [sourceHint, setSourceHint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -33,21 +32,24 @@ export function useFeaturedListings() {
   useEffect(() => {
     if (!queryPath) {
       setLoading(false)
-      setSourceHint('Показаны сохранённые квартиры клуба')
+      setListings([])
+      setError('API не настроен. Установите VITE_API_BASE_URL.')
+      setSourceHint(null)
       return
     }
 
+    const resolvedPath = queryPath
     const controller = new AbortController()
 
     async function loadFeatured() {
       try {
         setLoading(true)
-        const { data, response } = await apiGet<ListingCatalogResponse>(queryPath, {
+        const { data, response } = await apiGet<ListingCatalogResponse>(resolvedPath, {
           signal: controller.signal,
         })
         if (!data.items?.length) {
           setListings([])
-          setError('В каталоге пока нет активных квартир. Мы обновляем подборку.')
+          setError('Ничего не нашли для текущих фильтров.')
           setSourceHint(null)
           return
         }
@@ -65,18 +67,18 @@ export function useFeaturedListings() {
           })
           setSourceHint(`Обновлено ${formatted}`)
         } else if (data.meta?.total) {
-          setSourceHint(`В базе ${data.meta.total} квартир`)
+          setSourceHint(`В каталоге ${data.meta.total} предложений`)
         } else {
-          setSourceHint('Обновлено несколько минут назад')
+          setSourceHint('Коллекция доступных предложений обновляется ежедневно')
         }
       } catch (err) {
         if (controller.signal.aborted) {
           return
         }
-        console.warn('Не удалось загрузить витрину', err)
-        setListings(mockListings)
-        setError('Не удалось загрузить подборку. Показаны сохранённые квартиры клуба.')
-        setSourceHint('Показаны сохранённые квартиры клуба')
+        console.warn('Failed to load featured listings', err)
+        setListings([])
+        setError('Не удалось загрузить подборку. Попробуйте обновить страницу позже.')
+        setSourceHint(null)
       } finally {
         setLoading(false)
       }
