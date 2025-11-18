@@ -28,12 +28,35 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 bg-dusty-mauve-50/70 shadow-[0_10px_40px_rgba(27,24,26,0.1)] backdrop-blur-2xl">
       <div className="container py-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xl font-semibold uppercase tracking-tight text-dusty-mauve-900">Rentme</span>
             <div className="hidden items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-1 text-xs font-semibold text-dry-sage-700 shadow-soft sm:flex">
               <span>Жильё</span>
               <span className="text-dusty-mauve-500">на любой срок</span>
+            </div>
+          </div>
+
+          <div
+            className={`flex flex-col gap-4 rounded-3xl border border-white/60 bg-white/80 p-4 shadow-soft transition-all md:flex-row md:items-center md:justify-between md:gap-6 md:border-transparent md:bg-transparent md:p-0 md:shadow-none ${
+              menuOpen ? 'flex' : 'hidden md:flex'
+            }`}
+          >
+            <NavLinks />
+            <div className="flex flex-col gap-3 text-sm font-semibold md:flex-row md:items-center">
+              <a
+                href="#featured"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-2 text-dusty-mauve-900 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
+              >
+                Найти жильё
+              </a>
+              <a
+                href="mailto:hosts@rentme.app?subject=Rentme%20-%20Add%20listing"
+                className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-2 text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+              >
+                Разместить жильё
+              </a>
             </div>
           </div>
 
@@ -53,29 +76,6 @@ export function Header() {
               <span className="sr-only">Меню</span>
               <span className="block h-0.5 w-5 bg-dusty-mauve-900" />
             </button>
-          </div>
-        </div>
-
-        <div
-          className={`mt-4 flex flex-col gap-4 rounded-3xl border border-white/60 bg-white/80 p-4 shadow-soft transition-all md:mt-6 md:flex-row md:items-center md:justify-between md:border-transparent md:bg-transparent md:p-0 md:shadow-none ${
-            menuOpen ? 'flex' : 'hidden md:flex'
-          }`}
-        >
-          <NavLinks />
-          <div className="flex flex-col gap-3 text-sm font-semibold md:flex-row md:items-center">
-            <a
-              href="#featured"
-              onClick={() => setMenuOpen(false)}
-              className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-2 text-dusty-mauve-900 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
-            >
-              Найти жильё
-            </a>
-            <a
-              href="mailto:hosts@rentme.app?subject=Rentme%20-%20Add%20listing"
-              className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-2 text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
-            >
-              Разместить жильё
-            </a>
           </div>
         </div>
       </div>
