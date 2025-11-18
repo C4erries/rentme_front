@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CatalogPage } from './pages/CatalogPage'
 import { LandingPage } from './pages/LandingPage'
+import { withViewTransition } from './lib/viewTransitions'
 
 interface AppRoute {
   pathname: string
@@ -27,9 +28,11 @@ function App() {
     if (typeof window === 'undefined') {
       return
     }
-    const method: 'pushState' | 'replaceState' = options?.replace ? 'replaceState' : 'pushState'
-    window.history[method](null, '', path)
-    setRoute(getCurrentRoute())
+    withViewTransition(() => {
+      const method: 'pushState' | 'replaceState' = options?.replace ? 'replaceState' : 'pushState'
+      window.history[method](null, '', path)
+      setRoute(getCurrentRoute())
+    })
   }, [])
 
   if (route.pathname.startsWith('/catalog')) {

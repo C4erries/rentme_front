@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer'
 import { ListingPreview } from '../components/ListingPreview'
 import { useCatalogListings } from '../hooks/useCatalogListings'
 import { mapListing } from '../hooks/useFeaturedListings'
+import { withViewTransition } from '../lib/viewTransitions'
 import type { Listing, ListingRecord } from '../types/listing'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -117,7 +118,9 @@ function formatAvailability(record: ListingRecord) {
   if (!availability?.check_in || !availability?.check_out) {
     return { text: 'Уточните даты у хоста', isAvailable: true }
   }
-  const text = `${dateFormatter.format(new Date(availability.check_in))} — ${dateFormatter.format(new Date(availability.check_out))}`
+  const text = `${dateFormatter.format(new Date(availability.check_in))} — ${dateFormatter.format(
+    new Date(availability.check_out),
+  )}`
   if (availability.is_available) {
     return { text: `Свободно ${text}`, isAvailable: true }
   }
@@ -143,7 +146,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
     }
   }, [listings, selectedListingId])
 
-  const cards = useMemo(() => listings.map((item) => ({ record: item, ...createListingSummary(item) })), [listings])
+  const cards = useMemo(
+    () => listings.map((item) => ({ record: item, ...createListingSummary(item) })),
+    [listings],
+  )
 
   const selectedSummary: Listing | null = selectedListingId
     ? cards.find((card) => card.record.id === selectedListingId)?.summary ?? null
@@ -152,7 +158,9 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
   const applyStateToUrl = (nextState: CatalogFormState, options?: { replace?: boolean }) => {
     const query = buildQuery(nextState)
     const path = query ? `/catalog?${query}` : '/catalog'
-    onNavigate(path, options)
+    withViewTransition(() => {
+      onNavigate(path, options)
+    })
   }
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -205,7 +213,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
               </div>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="glass-panel grid gap-3 rounded-3xl p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="glass-panel grid gap-3 rounded-3xl p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+            >
               <label className="flex flex-col gap-1 text-sm">
                 <span className="text-xs uppercase text-dry-sage-600">Локация</span>
                 <input
@@ -345,7 +356,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
             <div className="grid gap-4">
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
-                  <div key={`skeleton-${index}`} className="h-48 animate-pulse rounded-3xl border border-dusty-mauve-100 bg-white/70" />
+                  <div
+                    key={`skeleton-${index}`}
+                    className="h-48 animate-pulse rounded-3xl border border-dusty-mauve-100 bg-white/70"
+                  />
                 ))
               ) : cards.length > 0 ? (
                 cards.map((card) => (
@@ -375,7 +389,11 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                         </div>
                         <div>
                           <p className="text-dusty-mauve-500">Доступность</p>
-                          <p className={`text-sm font-semibold ${card.availability.isAvailable ? 'text-dry-sage-700' : 'text-dusty-mauve-500'}`}>
+                          <p
+                            className={`text-sm font-semibold ${
+                              card.availability.isAvailable ? 'text-dry-sage-700' : 'text-dusty-mauve-500'
+                            }`}
+                          >
                             {card.availability.text}
                           </p>
                         </div>
@@ -390,7 +408,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                       <div className="flex flex-wrap gap-3 text-sm font-semibold">
                         <button
                           type="button"
-                          onClick={() => setSelectedListingId(card.record.id)}
+                          onClick={() => withViewTransition(() => setSelectedListingId(card.record.id))}
                           className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-dusty-mauve-800 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
                         >
                           Смотреть детали
@@ -460,8 +478,9 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
       <ListingPreview
         listingId={selectedListingId}
         summary={selectedSummary}
-        onClose={() => setSelectedListingId(null)}
+        onClose={() => withViewTransition(() => setSelectedListingId(null))}
       />
     </div>
   )
 }
+
