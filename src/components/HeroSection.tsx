@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+
 const stats = [
   { label: 'Городов в каталоге', value: '18', note: 'Москва, Петербург, Прага и другие' },
   { label: 'Хостов', value: '640+', note: 'верифицированы документами' },
@@ -29,7 +32,33 @@ const serviceSteps = [
   'Бронируете и подписываете договор онлайн',
 ]
 
-export function HeroSection() {
+export interface HeroSearchPayload {
+  location?: string
+  checkIn?: string
+  checkOut?: string
+  guests?: number
+}
+
+interface HeroSectionProps {
+  onSearch?: (payload: HeroSearchPayload) => void
+}
+
+export function HeroSection({ onSearch }: HeroSectionProps) {
+  const [location, setLocation] = useState('')
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
+  const [guests, setGuests] = useState('')
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSearch?.({
+      location: location.trim() || undefined,
+      checkIn: checkIn || undefined,
+      checkOut: checkOut || undefined,
+      guests: guests ? Number(guests) : undefined,
+    })
+  }
+
   return (
     <section id="how-it-works" className="container grid gap-8 py-10 md:grid-cols-2 md:items-center md:gap-12 md:py-16">
       <div className="space-y-6">
@@ -41,8 +70,8 @@ export function HeroSection() {
             Платформа аренды жилья для поездок на любой срок
           </h1>
           <p className="text-base text-dusty-mauve-600 sm:text-lg">
-            Rentme соединяет гостей и хостов: проверяем объявления, показываем календарь доступности
-            и стоимость, помогаем бронировать онлайн без посредников.
+            Rentme соединяет гостей и хостов: проверяем объявления, показываем календарь доступности и стоимость, помогаем
+            бронировать онлайн без посредников.
           </p>
         </div>
 
@@ -83,6 +112,57 @@ export function HeroSection() {
             Запросить бронирование
           </a>
         </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="glass-panel grid gap-3 rounded-3xl p-4 text-sm shadow-soft sm:grid-cols-[2fr_1fr_1fr_1fr_auto]"
+        >
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase text-dry-sage-600">Локация</span>
+            <input
+              type="text"
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Москва, центр, вид на реку"
+              className="rounded-2xl border border-dusty-mauve-100 bg-white/80 px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase text-dry-sage-600">Заезд</span>
+            <input
+              type="date"
+              value={checkIn}
+              onChange={(event) => setCheckIn(event.target.value)}
+              className="rounded-2xl border border-dusty-mauve-100 bg-white/80 px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase text-dry-sage-600">Выезд</span>
+            <input
+              type="date"
+              value={checkOut}
+              onChange={(event) => setCheckOut(event.target.value)}
+              className="rounded-2xl border border-dusty-mauve-100 bg-white/80 px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs uppercase text-dry-sage-600">Гости</span>
+            <input
+              type="number"
+              min={1}
+              value={guests}
+              onChange={(event) => setGuests(event.target.value)}
+              placeholder="2"
+              className="rounded-2xl border border-dusty-mauve-100 bg-white/80 px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+            />
+          </label>
+          <button
+            type="submit"
+            className="mt-4 inline-flex items-center justify-center rounded-2xl bg-dusty-mauve-900 px-4 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 sm:mt-auto"
+          >
+            Найти жильё
+          </button>
+        </form>
       </div>
 
       <div className="space-y-4">
@@ -108,7 +188,9 @@ export function HeroSection() {
           <div>
             <p className="text-sm uppercase text-dry-sage-600">Служба поддержки</p>
             <p className="text-base font-semibold text-dusty-mauve-900">Команда Rentme</p>
-            <p className="text-sm text-dusty-mauve-600">отвечает на запросы хостов и гостей в течение 10 минут</p>
+            <p className="text-sm text-dusty-mauve-600">
+              отвечает на запросы хостов и гостей в течение 10 минут
+            </p>
           </div>
           <dl className="space-y-2 text-sm text-dusty-mauve-700">
             {conciergeContacts.map((contact) => (
@@ -144,3 +226,4 @@ export function HeroSection() {
     </section>
   )
 }
+

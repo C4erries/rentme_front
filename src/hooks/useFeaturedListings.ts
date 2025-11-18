@@ -3,6 +3,7 @@ import { apiGet, hasApiBaseUrl } from '../lib/api'
 import type { Listing, ListingCatalogResponse, ListingMood, ListingRecord } from '../types/listing'
 
 const FEATURED_LIMIT = 6
+
 export interface FeaturedListingFilters {
   city?: string
   minGuests?: number
@@ -13,7 +14,9 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
   currency: 'RUB',
   maximumFractionDigits: 0,
 })
+
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80'
 
@@ -51,14 +54,14 @@ export function useFeaturedListings(filters: FeaturedListingFilters = {}) {
       return
     }
 
-    const resolvedPath = queryPath
+    const path = queryPath
     const controller = new AbortController()
 
     async function loadFeatured() {
       try {
         setLoading(true)
         setError(null)
-        const { data, response } = await apiGet<ListingCatalogResponse>(resolvedPath, {
+        const { data, response } = await apiGet<ListingCatalogResponse>(path, {
           signal: controller.signal,
         })
         if (!data.items?.length) {
@@ -94,7 +97,9 @@ export function useFeaturedListings(filters: FeaturedListingFilters = {}) {
         setError('Не удалось загрузить подборку. Попробуйте обновить страницу позже.')
         setSourceHint(null)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
@@ -107,7 +112,7 @@ export function useFeaturedListings(filters: FeaturedListingFilters = {}) {
   return { listings, loading, sourceHint, error, refresh }
 }
 
-function mapListing(card: ListingRecord): Listing {
+export function mapListing(card: ListingRecord): Listing {
   const locationParts = [card.city, card.address_line].filter(Boolean)
   const areaParts: string[] = []
   if (card.area_sq_m) {
@@ -200,3 +205,4 @@ function dedupeStrings(values: string[] | null | undefined, limit: number) {
   }
   return result
 }
+

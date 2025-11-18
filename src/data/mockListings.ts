@@ -22,7 +22,7 @@ export const mockListings: Listing[] = [
     area: '105 м² · 3 спальни',
     availableFrom: 'С 1 декабря',
     tags: ['два паркинга', 'частный лифт'],
-    features: ['Сценарии света и “умный дом”', 'Окна на канал и внутренний сад', 'Гардеробная в мастер-зоне'],
+    features: ['Сценарии света и «умный дом»', 'Окна на канал и внутренний сад', 'Гардеробная в мастер-зоне'],
     mood: 'energetic',
     thumbnail:
       'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1200&q=80',
@@ -35,9 +35,10 @@ export const mockListings: Listing[] = [
     area: '128 м² · 3 спальни',
     availableFrom: 'С 15 ноября',
     tags: ['сад во дворе', 'камин'],
-    features: ['Высокие потолки 4,2 м', 'Авторская мебель и печь-камин', 'Гараж с зарядкой для EV'],
+    features: ['Высокие потолки 4,2 м', 'Авторская мебель и печь-камин', 'Гараж с зарядкой для электромобиля'],
     mood: 'heritage',
     thumbnail:
       'https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&w=1200&q=80',
   },
 ]
+

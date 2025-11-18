@@ -10,6 +10,7 @@ export interface ListingRecord {
   city: string
   country: string
   address_line: string
+  property_type: string
   guests_limit: number
   min_nights: number
   max_nights: number
@@ -24,16 +25,21 @@ export interface ListingRecord {
   rating: number
   available_from: string
   state: string
+  availability?: ListingAvailabilityRecord
 }
 
 export interface ListingCatalogFilters {
   city: string
   country: string
+  location: string
   tags: string[]
   amenities: string[]
   min_guests: number
   price_min_cents: number
   price_max_cents: number
+  property_types: string[]
+  check_in: string
+  check_out: string
 }
 
 export interface ListingCatalogMeta {
@@ -42,6 +48,17 @@ export interface ListingCatalogMeta {
   limit: number
   offset: number
   sort: string
+  page: number
+  total_pages: number
+}
+
+export interface ListingAvailabilityRecord {
+  check_in: string
+  check_out: string
+  nights: number
+  guests: number
+  is_available: boolean
+  reason?: string
 }
 
 export type ListingMood = 'calm' | 'energetic' | 'heritage'

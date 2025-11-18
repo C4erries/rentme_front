@@ -1,59 +1,42 @@
-import { Header } from './components/Header'
-import { HeroSection } from './components/HeroSection'
-import { AssuranceBar } from './components/AssuranceBar'
-import { FeaturedListings } from './components/FeaturedListings'
-import { HighlightsSection } from './components/HighlightsSection'
-import { NeighborhoodStories } from './components/NeighborhoodStories'
-import { TestimonialsSection } from './components/TestimonialsSection'
-import { Footer } from './components/Footer'
+import { useCallback, useEffect, useState } from 'react'
+import { CatalogPage } from './pages/CatalogPage'
+import { LandingPage } from './pages/LandingPage'
 
-function CtaPanel() {
-  return (
-    <section className="container py-12">
-      <div className="glass-panel flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <p className="text-sm uppercase text-dry-sage-600">нужна помощь</p>
-          <h3 className="text-2xl font-semibold text-dusty-mauve-900">
-            Подключим жильё или расскажем, как бронировать на платформе
-          </h3>
-          <p className="text-sm text-dusty-mauve-600">
-            Опишите формат поездки или объект. Менеджер отправит ссылку на подходящие объявления или
-            активирует личный кабинет хоста.
-          </p>
-        </div>
-        <a
-          href="mailto:care@rentme.app?subject=Rentme%20-%20Support%20request"
-          className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-center text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
-        >
-          Оставить заявку
-        </a>
-      </div>
-    </section>
-  )
+interface AppRoute {
+  pathname: string
+  search: string
+}
+
+function getCurrentRoute(): AppRoute {
+  if (typeof window === 'undefined') {
+    return { pathname: '/', search: '' }
+  }
+  return { pathname: window.location.pathname, search: window.location.search }
 }
 
 function App() {
-  return (
-    <div className="min-h-screen bg-dusty-mauve-50 text-dusty-mauve-900">
-      <div className="relative isolate overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-dusty-mauve-200/60 to-transparent" />
-        <div className="pointer-events-none absolute -left-10 top-24 h-72 w-72 rounded-full bg-cream-200/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 top-44 h-72 w-72 rounded-full bg-khaki-beige-200/40 blur-3xl" />
+  const [route, setRoute] = useState<AppRoute>(() => getCurrentRoute())
 
-        <Header />
-        <main className="relative z-10 space-y-4 pb-16">
-          <HeroSection />
-          <AssuranceBar />
-          <FeaturedListings />
-          <HighlightsSection />
-          <NeighborhoodStories />
-          <TestimonialsSection />
-          <CtaPanel />
-        </main>
-        <Footer />
-      </div>
-    </div>
-  )
+  useEffect(() => {
+    const handlePopState = () => setRoute(getCurrentRoute())
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  const navigate = useCallback((path: string, options?: { replace?: boolean }) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const method: 'pushState' | 'replaceState' = options?.replace ? 'replaceState' : 'pushState'
+    window.history[method](null, '', path)
+    setRoute(getCurrentRoute())
+  }, [])
+
+  if (route.pathname.startsWith('/catalog')) {
+    return <CatalogPage route={route} onNavigate={navigate} />
+  }
+
+  return <LandingPage onNavigate={navigate} />
 }
 
 export default App

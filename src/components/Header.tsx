@@ -1,13 +1,26 @@
 import { useState } from 'react'
+import type { MouseEvent } from 'react'
+
+interface HeaderProps {
+  onNavigate?: (path: string) => void
+}
 
 const navLinks = [
-  { label: 'Каталог', hint: 'объявления к заселению', href: '#featured' },
+  { label: 'Каталог', hint: 'объявления к заселению', href: '/catalog' },
   { label: 'Как это работает', hint: 'поиск → просмотр → бронь', href: '#how-it-works' },
   { label: 'Районы', hint: 'гиды и истории', href: '#stories' },
 ]
 
-export function Header() {
+export function Header({ onNavigate }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const handleLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('/')) {
+      event.preventDefault()
+      onNavigate?.(href)
+      setMenuOpen(false)
+    }
+  }
 
   const NavLinks = () => (
     <nav className="flex flex-1 flex-col gap-4 text-sm md:flex-row md:items-center md:justify-center">
@@ -15,7 +28,7 @@ export function Header() {
         <a
           key={item.label}
           href={item.href}
-          onClick={() => setMenuOpen(false)}
+          onClick={(event) => handleLink(event, item.href)}
           className="group flex flex-col rounded-2xl border border-transparent px-4 py-2 transition hover:border-dry-sage-300 hover:bg-white/40"
         >
           <span className="font-medium text-dusty-mauve-900 group-hover:text-dry-sage-700">{item.label}</span>
@@ -45,8 +58,8 @@ export function Header() {
             <NavLinks />
             <div className="flex flex-col gap-3 text-sm font-semibold md:flex-row md:items-center">
               <a
-                href="#featured"
-                onClick={() => setMenuOpen(false)}
+                href="/catalog"
+                onClick={(event) => handleLink(event, '/catalog')}
                 className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-2 text-dusty-mauve-900 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
               >
                 Найти жильё
@@ -62,7 +75,8 @@ export function Header() {
 
           <div className="ml-auto flex items-center gap-3 md:hidden">
             <a
-              href="#featured"
+              href="/catalog"
+              onClick={(event) => handleLink(event, '/catalog')}
               className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold text-dusty-mauve-900 shadow-sm"
             >
               Каталог
@@ -82,3 +96,4 @@ export function Header() {
     </header>
   )
 }
+
