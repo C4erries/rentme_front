@@ -1,4 +1,4 @@
-﻿import { useFeaturedListings } from '../hooks/useFeaturedListings'
+import { useFeaturedListings } from '../hooks/useFeaturedListings'
 import type { Listing } from '../types/listing'
 
 const moodStyles = {
@@ -73,7 +73,7 @@ function ListingCard({ listing }: { listing: Listing }) {
 }
 
 export function FeaturedListings() {
-  const { listings, loading, sourceHint } = useFeaturedListings()
+  const { listings, loading, sourceHint, error } = useFeaturedListings()
 
   return (
     <section className="container space-y-6 py-8" id="featured">
@@ -87,6 +87,12 @@ export function FeaturedListings() {
         {sourceHint && <p className="text-xs text-dusty-mauve-500">{sourceHint}</p>}
       </div>
 
+      {error && (
+        <div className="rounded-2xl border border-cream-200 bg-cream-50/70 p-4 text-sm text-dusty-mauve-700">
+          {error}
+        </div>
+      )}
+
       <div className="grid gap-4">
         {loading
           ? Array.from({ length: 2 }).map((_, index) => (
@@ -95,14 +101,20 @@ export function FeaturedListings() {
                 className="h-64 animate-pulse rounded-3xl border border-dusty-mauve-100 bg-dusty-mauve-100/40"
               />
             ))
-          : listings.map((listing) => (
-              <div
-                key={listing.id}
-                className={`bg-gradient-to-br ${moodStyles[listing.mood]} rounded-3xl`}
-              >
-                <ListingCard listing={listing} />
-              </div>
-            ))}
+          : listings.length > 0
+            ? listings.map((listing) => (
+                <div
+                  key={listing.id}
+                  className={`bg-gradient-to-br ${moodStyles[listing.mood]} rounded-3xl`}
+                >
+                  <ListingCard listing={listing} />
+                </div>
+              ))
+            : (
+                <div className="rounded-3xl border border-dusty-mauve-100 bg-white/70 p-6 text-sm text-dusty-mauve-600">
+                  В каталоге нет активных квартир. Мы обновляем подборку и вернём её в ближайшее время.
+                </div>
+              )}
       </div>
     </section>
   )

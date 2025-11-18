@@ -1,63 +1,184 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { apiGet, hasApiBaseUrl } from '../lib/api'
 import { mockListings } from '../data/mockListings'
-import type { Listing } from '../types/listing'
+import type { Listing, ListingCatalogResponse, ListingMood, ListingRecord } from '../types/listing'
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+const FEATURED_LIMIT = 6
+const priceFormatter = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'RUB',
+  maximumFractionDigits: 0,
+})
+const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80'
 
 export function useFeaturedListings() {
   const [listings, setListings] = useState<Listing[]>(mockListings)
-  const [loading, setLoading] = useState<boolean>(Boolean(API_BASE_URL))
+  const [loading, setLoading] = useState<boolean>(hasApiBaseUrl())
   const [sourceHint, setSourceHint] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const endpoint = useMemo(() => {
-    if (!API_BASE_URL) {
+  const queryPath = useMemo(() => {
+    if (!hasApiBaseUrl()) {
       return null
     }
-    return `${API_BASE_URL.replace(/\/$/, '')}/listings/featured`
+    const params = new URLSearchParams({
+      limit: String(FEATURED_LIMIT),
+      sort: 'rating_desc',
+    })
+    return `/listings?${params.toString()}`
   }, [])
 
   useEffect(() => {
-    if (!endpoint) {
-      setSourceHint('Подборка обновляется офлайн дважды в день')
+    if (!queryPath) {
+      setLoading(false)
+      setSourceHint('Показаны сохранённые квартиры клуба')
       return
     }
 
     const controller = new AbortController()
 
-    async function loadFeatured(url: string) {
+    async function loadFeatured() {
       try {
         setLoading(true)
-        const response = await fetch(url, { signal: controller.signal })
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`)
+        const { data, response } = await apiGet<ListingCatalogResponse>(queryPath, {
+          signal: controller.signal,
+        })
+        if (!data.items?.length) {
+          setListings([])
+          setError('В каталоге пока нет активных квартир. Мы обновляем подборку.')
+          setSourceHint(null)
+          return
         }
-        const payload = (await response.json()) as Listing[]
-        setListings(payload)
 
-        const serverTimestamp = response.headers.get('last-modified')
-        if (serverTimestamp) {
-          const formatted = new Date(serverTimestamp).toLocaleString('ru-RU', {
-            hour: '2-digit',
-            minute: '2-digit',
+        setListings(data.items.map(mapListing))
+        setError(null)
+
+        const lastModified = response.headers.get('last-modified')
+        if (lastModified) {
+          const formatted = new Date(lastModified).toLocaleString('ru-RU', {
             day: '2-digit',
             month: 'long',
+            hour: '2-digit',
+            minute: '2-digit',
           })
           setSourceHint(`Обновлено ${formatted}`)
+        } else if (data.meta?.total) {
+          setSourceHint(`В базе ${data.meta.total} квартир`)
         } else {
           setSourceHint('Обновлено несколько минут назад')
         }
-      } catch (error) {
-        console.warn('Не удалось получить подборку', error)
-        setSourceHint('Показаны сохранённые квартиры клуба')
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return
+        }
+        console.warn('Не удалось загрузить витрину', err)
         setListings(mockListings)
+        setError('Не удалось загрузить подборку. Показаны сохранённые квартиры клуба.')
+        setSourceHint('Показаны сохранённые квартиры клуба')
       } finally {
         setLoading(false)
       }
     }
 
-    loadFeatured(endpoint)
+    loadFeatured()
     return () => controller.abort()
-  }, [endpoint])
+  }, [queryPath])
 
-  return { listings, loading, sourceHint }
+  return { listings, loading, sourceHint, error }
+}
+
+function mapListing(card: ListingRecord): Listing {
+  const locationParts = [card.city, card.address_line].filter(Boolean)
+  const areaParts: string[] = []
+  if (card.area_sq_m) {
+    areaParts.push(`${Math.round(card.area_sq_m)} м²`)
+  }
+  if (card.bedrooms > 0) {
+    areaParts.push(`${card.bedrooms} ${pluralize(card.bedrooms, ['спальня', 'спальни', 'спален'])}`)
+  }
+  if (card.bathrooms > 0) {
+    areaParts.push(`${card.bathrooms} ${pluralize(card.bathrooms, ['санузел', 'санузла', 'санузлов'])}`)
+  }
+
+  const highlights = card.highlights?.length ? card.highlights : card.amenities?.slice(0, 3) ?? []
+  const availableFrom = formatAvailableDate(card.available_from)
+
+  return {
+    id: card.id,
+    title: card.title,
+    location: locationParts.join(' · ') || card.city || 'Локация уточняется',
+    price: formatNightlyRate(card.nightly_rate_cents),
+    area: areaParts.join(' · ') || 'Площадь уточняется',
+    availableFrom,
+    tags: (card.tags ?? []).slice(0, 3),
+    features: dedupeStrings(highlights, 3),
+    mood: resolveMood(card),
+    thumbnail: card.thumbnail_url || FALLBACK_IMAGE,
+    rating: card.rating,
+  }
+}
+
+function formatNightlyRate(cents: number) {
+  if (!cents) {
+    return 'Цена по запросу'
+  }
+  return priceFormatter.format(Math.round(cents / 100))
+}
+
+function formatAvailableDate(value: string | undefined) {
+  if (!value) {
+    return 'Готово к заселению'
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Готово к заселению'
+  }
+  return `с ${dateFormatter.format(date)}`
+}
+
+function resolveMood(card: ListingRecord): ListingMood {
+  const context = [card.city, card.address_line, ...(card.tags ?? []), ...(card.highlights ?? [])]
+    .join(' ')
+    .toLowerCase()
+  if (context.match(/истор|камин|сад/)) {
+    return 'heritage'
+  }
+  if (context.match(/лофт|центр|панорам/)) {
+    return 'energetic'
+  }
+  return 'calm'
+}
+
+function pluralize(value: number, forms: [string, string, string]) {
+  const mod10 = value % 10
+  const mod100 = value % 100
+  if (mod10 === 1 && mod100 !== 11) {
+    return forms[0]
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return forms[1]
+  }
+  return forms[2]
+}
+
+function dedupeStrings(values: string[] | null | undefined, limit: number) {
+  if (!values?.length) {
+    return []
+  }
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const value of values) {
+    const normalized = value.trim()
+    if (!normalized || seen.has(normalized)) {
+      continue
+    }
+    seen.add(normalized)
+    result.push(normalized)
+    if (result.length === limit) {
+      break
+    }
+  }
+  return result
 }
