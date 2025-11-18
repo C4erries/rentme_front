@@ -1,14 +1,14 @@
 const stats = [
   { label: 'Городов в каталоге', value: '18', note: 'Москва, Петербург, Прага и другие' },
-  { label: 'Хостов на платформе', value: '640+', note: 'верифицированы документами' },
-  { label: 'Диапазон аренды', value: '3–365 ночей', note: 'кратко и надолго' },
+  { label: 'Хостов', value: '640+', note: 'верифицированы документами' },
+  { label: 'Диапазон аренды', value: '3–365 ночей', note: 'для поездок любой длины' },
 ] as const
 
 const highlights = [
   'кратко- и долгосрочные поездки',
   'единый календарь доступности',
   'цифровое бронирование',
-  'аналитика цен',
+  'инструменты для хостов',
 ]
 
 const conciergeContacts = [
@@ -24,25 +24,25 @@ const viewingCard = {
 }
 
 const serviceSteps = [
-  'Выбираете город, дату и формат проживания',
-  'Созваниваетесь или чатитесь с хостом через Rentme',
+  'Выбираете город, даты и формат проживания в каталоге',
+  'Созваниваетесь или чатитесь с хостом внутри Rentme',
   'Бронируете и подписываете договор онлайн',
 ]
 
 export function HeroSection() {
   return (
-    <section className="container grid gap-8 py-10 md:grid-cols-2 md:items-center md:gap-12 md:py-16">
+    <section id="how-it-works" className="container grid gap-8 py-10 md:grid-cols-2 md:items-center md:gap-12 md:py-16">
       <div className="space-y-6">
         <span className="inline-flex items-center gap-2 rounded-full border border-dry-sage-200 bg-dry-sage-50/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-dry-sage-700">
-          marketplace · жильё от verified хостов
+          онлайн-платформа · verified хосты
         </span>
         <div className="space-y-4">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight text-dusty-mauve-900 sm:text-4xl lg:text-5xl">
-            Маркетплейс для поиска и бронирования жилья
+            Платформа аренды жилья для поездок на любой срок
           </h1>
           <p className="text-base text-dusty-mauve-600 sm:text-lg">
-            Rentme соединяет гостей и хостов: публикуем проверенные объявления с календарями,
-            показываем честную стоимость и даём бронировать онлайн на нужный срок.
+            Rentme соединяет гостей и хостов: проверяем объявления, показываем календарь доступности
+            и стоимость, помогаем бронировать онлайн без посредников.
           </p>
         </div>
 
@@ -77,10 +77,10 @@ export function HeroSection() {
             Написать в Telegram
           </a>
           <a
-            href="mailto:care@rentme.app?subject=Rentme%20Club%20бронь"
+            href="mailto:care@rentme.app?subject=Rentme%20-%20Booking%20request"
             className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-6 py-3 text-sm font-semibold text-dusty-mauve-700 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
           >
-            Отправить бриф на почту
+            Запросить бронирование
           </a>
         </div>
       </div>
@@ -98,8 +98,8 @@ export function HeroSection() {
               live
             </span>
             <div>
-              <p className="text-sm font-semibold text-dusty-mauve-900">Съёмка тура для клиента</p>
-              <p className="text-xs text-dusty-mauve-500">отправим в приложении через 30 минут</p>
+              <p className="text-sm font-semibold text-dusty-mauve-900">Онлайн-просмотр для гостя</p>
+              <p className="text-xs text-dusty-mauve-500">ссылка появится в аккаунте после подтверждения</p>
             </div>
           </div>
         </div>
@@ -107,12 +107,8 @@ export function HeroSection() {
         <div className="glass-panel space-y-5 p-5">
           <div>
             <p className="text-sm uppercase text-dry-sage-600">Служба поддержки</p>
-            <p className="text-base font-semibold text-dusty-mauve-900">
-              Команда поддержки Rentme
-            </p>
-            <p className="text-sm text-dusty-mauve-600">
-              отвечает на запросы хостов и гостей в течение 10 минут
-            </p>
+            <p className="text-base font-semibold text-dusty-mauve-900">Команда Rentme</p>
+            <p className="text-sm text-dusty-mauve-600">отвечает на запросы хостов и гостей в течение 10 минут</p>
           </div>
           <dl className="space-y-2 text-sm text-dusty-mauve-700">
             {conciergeContacts.map((contact) => (

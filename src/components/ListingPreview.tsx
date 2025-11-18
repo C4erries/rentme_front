@@ -47,7 +47,7 @@ export function ListingPreview({ listingId, summary, onClose }: ListingPreviewPr
       : summary?.location) ?? 'Локация уточняется'
   const description =
     data?.description ??
-    'Собираем расширенное описание, проверяем историю дома и готовим чек-лист для просмотра.'
+    'Показываем историю объявления, календарь и удобства. Можно запросить просмотр и оформить бронь прямо из Rentme.'
 
   const availabilityBlocks = data?.calendar?.blocks ?? []
   const highlightedBlocks = availabilityBlocks.slice(0, 2)
@@ -155,7 +155,7 @@ export function ListingPreview({ listingId, summary, onClose }: ListingPreviewPr
 
             <div className="flex flex-wrap gap-3">
               <a
-                href={`mailto:care@rentme.app?subject=Rentme%20Club%20-%20${listingId}`}
+                href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${listingId}`}
                 className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
               >
                 Запросить просмотр

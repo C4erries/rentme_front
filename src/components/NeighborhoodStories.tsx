@@ -1,4 +1,4 @@
-﻿const spotlights = [
+const spotlights = [
   {
     district: 'Хамовники',
     vibe: 'slow living',
@@ -24,7 +24,7 @@
 
 export function NeighborhoodStories() {
   return (
-    <section className="container space-y-6 py-10">
+    <section id="stories" className="container space-y-6 py-10">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase text-dry-sage-600">районы и истории</p>
@@ -33,7 +33,7 @@ export function NeighborhoodStories() {
           </h2>
         </div>
         <p className="text-sm text-dusty-mauve-500">
-          Каждую неделю кураторы дополняют гиды новым аудио и видео-контентом.
+          Редакция Rentme обновляет гайды новыми аудио- и видео-маркерами каждую неделю.
         </p>
       </div>
 

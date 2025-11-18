@@ -22,7 +22,7 @@ function CtaPanel() {
           </p>
         </div>
         <a
-          href="mailto:care@rentme.app?subject=Rentme%20Marketplace%20-%20Request"
+          href="mailto:care@rentme.app?subject=Rentme%20-%20Support%20request"
           className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-center text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
         >
           Оставить заявку
