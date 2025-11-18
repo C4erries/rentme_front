@@ -1,21 +1,24 @@
-const spotlights = [
+﻿const spotlights = [
   {
     district: 'Хамовники',
     vibe: 'slow living',
-    summary: 'Пешие 8 минут до Москва-реки, кофейни третьей волны и школы в шаговой доступности.',
-    tips: ['Однородная архитектура', 'Зелёные маршруты для бега'],
+    summary:
+      'Маршруты вдоль Москвы-реки, рестораны у набережной и элитные школы в шаге. Показываем реальные уровни шума и света в течение суток.',
+    tips: ['пешие 7 минут до парка МУЗЕОН', 'закрытые дворы без машин'],
   },
   {
     district: 'Новая Голландия',
     vibe: 'creative scene',
-    summary: 'Лофты над каналами, клубные пространства и ежедневные выставки во двориках.',
-    tips: ['Живые рынки выходного дня', 'Музыка во внутренних двориках'],
+    summary:
+      'Лофты с кирпичными сводами, галереи во двориках и гастрономия вечернего типа. Публикуем расписание событий прямо в подборке.',
+    tips: ['уличные рынки по выходным', 'отдельные парковки для велосипедов'],
   },
   {
     district: 'Сити-парк',
     vibe: 'family mix',
-    summary: 'Закрытые дворы без машин, игровые павильоны и безопасные веломаршруты.',
-    tips: ['Маршрут каршеринга', 'Местные фермеры по подписке'],
+    summary:
+      'Современные кварталы с велодорожками, детскими павильонами и сервисами для домашних питомцев. Идеален для семейного контракта на 2+ года.',
+    tips: ['частные сады и кружки', 'маршруты доставки фермерских продуктов'],
   },
 ]
 
@@ -24,13 +27,13 @@ export function NeighborhoodStories() {
     <section className="container space-y-6 py-10">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase text-dry-sage-600">гид по районам</p>
+          <p className="text-sm font-semibold uppercase text-dry-sage-600">районы и истории</p>
           <h2 className="text-2xl font-semibold text-dusty-mauve-900 sm:text-3xl">
-            Собрали маршруты и привычки местных
+            Подбираем не только дом, но и привычки вокруг него
           </h2>
         </div>
         <p className="text-sm text-dusty-mauve-500">
-          Каждую неделю обновляем подборки lifestyle-подсказок внутри приложения.
+          Каждую неделю кураторы дополняют гиды новым аудио и видео-контентом.
         </p>
       </div>
 
@@ -38,11 +41,11 @@ export function NeighborhoodStories() {
         {spotlights.map((place) => (
           <article
             key={place.district}
-            className="flex flex-col gap-4 rounded-3xl border border-dusty-mauve-100 bg-white/70 p-5"
+            className="flex flex-col gap-4 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-5"
           >
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-xl font-semibold text-dusty-mauve-900">{place.district}</h3>
-              <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-xs font-semibold text-dry-sage-700">
+              <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-xs font-semibold text-dry-sage-700 uppercase">
                 {place.vibe}
               </span>
             </div>
@@ -56,7 +59,7 @@ export function NeighborhoodStories() {
               ))}
             </ul>
             <button className="text-left text-sm font-semibold text-dusty-mauve-900 underline underline-offset-4">
-              Открыть маршрут
+              Получить гайд района
             </button>
           </article>
         ))}

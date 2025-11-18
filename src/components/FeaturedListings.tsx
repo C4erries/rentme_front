@@ -1,4 +1,4 @@
-import { useFeaturedListings } from '../hooks/useFeaturedListings'
+﻿import { useFeaturedListings } from '../hooks/useFeaturedListings'
 import type { Listing } from '../types/listing'
 
 const moodStyles = {
@@ -9,40 +9,34 @@ const moodStyles = {
 
 function ListingCard({ listing }: { listing: Listing }) {
   return (
-    <article className="grid gap-4 rounded-3xl border border-dusty-mauve-100 bg-gradient-to-b p-4 shadow-sm sm:grid-cols-[1.3fr_1fr] sm:p-6">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
+    <article className="grid gap-4 rounded-3xl border border-dusty-mauve-100 bg-gradient-to-b p-4 shadow-sm sm:grid-cols-[1.1fr_0.9fr] sm:p-6">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-dusty-mauve-500">
+          <span className="rounded-full bg-white/70 px-3 py-1 text-dusty-mauve-600">{listing.location}</span>
           {listing.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-dusty-mauve-600"
-            >
+            <span key={tag} className="rounded-full bg-white/50 px-3 py-1 text-dusty-mauve-500">
               {tag}
             </span>
           ))}
         </div>
 
         <div className="space-y-1">
-          <h3 className="text-xl font-semibold text-dusty-mauve-900">{listing.title}</h3>
-          <p className="text-sm text-dusty-mauve-500">{listing.location}</p>
+          <h3 className="text-2xl font-semibold text-dusty-mauve-900">{listing.title}</h3>
+          <p className="text-sm text-dusty-mauve-500">{listing.area}</p>
         </div>
 
         <dl className="flex flex-wrap gap-6 text-sm">
           <div>
             <dt className="text-dusty-mauve-500">Стоимость</dt>
-            <dd className="font-semibold text-dusty-mauve-900">{listing.price}</dd>
+            <dd className="text-lg font-semibold text-dusty-mauve-900">{listing.price}</dd>
           </div>
           <div>
-            <dt className="text-dusty-mauve-500">Площадь</dt>
-            <dd className="font-semibold text-dusty-mauve-900">{listing.area}</dd>
-          </div>
-          <div>
-            <dt className="text-dusty-mauve-500">Доступно</dt>
+            <dt className="text-dusty-mauve-500">Статус</dt>
             <dd className="font-semibold text-dusty-mauve-900">{listing.availableFrom}</dd>
           </div>
         </dl>
 
-        <ul className="grid gap-2 text-sm text-dusty-mauve-600">
+        <ul className="space-y-2 text-sm text-dusty-mauve-600">
           {listing.features.map((feature) => (
             <li key={feature} className="flex items-center gap-2">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-dry-sage-500" />
@@ -50,6 +44,15 @@ function ListingCard({ listing }: { listing: Listing }) {
             </li>
           ))}
         </ul>
+
+        <div className="flex flex-wrap gap-3 text-sm font-semibold">
+          <button className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-dusty-mauve-800 transition hover:border-dry-sage-400 hover:text-dry-sage-700">
+            Запросить приватный тур
+          </button>
+          <button className="rounded-full border border-transparent px-4 py-2 text-dry-sage-700 underline underline-offset-4">
+            Скачать досье дома
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -57,50 +60,41 @@ function ListingCard({ listing }: { listing: Listing }) {
           <img
             src={listing.thumbnail}
             alt={listing.title}
-            className="h-48 w-full object-cover sm:h-full"
+            className="h-52 w-full object-cover sm:h-full"
             loading="lazy"
           />
         </div>
-        <button className="w-full rounded-2xl border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-800 transition hover:border-dry-sage-400 hover:text-dry-sage-700">
-          Записаться на просмотр
-        </button>
+        <p className="text-xs uppercase text-dusty-mauve-500">
+          Код подбора · <span className="font-mono">{listing.id}</span>
+        </p>
       </div>
     </article>
   )
 }
 
 export function FeaturedListings() {
-  const { listings, loading, error, endpoint } = useFeaturedListings()
-
-  const shimmer = (
-    <div className="h-64 animate-pulse rounded-3xl border border-dusty-mauve-100 bg-dusty-mauve-100/40" />
-  )
+  const { listings, loading, sourceHint } = useFeaturedListings()
 
   return (
-    <section className="container space-y-6 py-6 md:py-10" id="featured">
+    <section className="container space-y-6 py-8" id="featured">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase text-dry-sage-600">подбор от кураторской</p>
+          <p className="text-sm font-semibold uppercase text-dry-sage-600">витрина недели</p>
           <h2 className="text-2xl font-semibold text-dusty-mauve-900 sm:text-3xl">
-            Мини-коллекция домов, готовых к заселению
+            Квартиры, готовые принять вас в ближайшие две недели
           </h2>
         </div>
-        {endpoint && (
-          <p className="text-xs text-dusty-mauve-500">
-            источник · <span className="font-mono">{endpoint}</span>
-          </p>
-        )}
+        {sourceHint && <p className="text-xs text-dusty-mauve-500">{sourceHint}</p>}
       </div>
-
-      {error && (
-        <div className="rounded-2xl border border-cream-200 bg-cream-50/60 p-4 text-sm text-dusty-mauve-700">
-          {error}
-        </div>
-      )}
 
       <div className="grid gap-4">
         {loading
-          ? [shimmer, shimmer]
+          ? Array.from({ length: 2 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="h-64 animate-pulse rounded-3xl border border-dusty-mauve-100 bg-dusty-mauve-100/40"
+              />
+            ))
           : listings.map((listing) => (
               <div
                 key={listing.id}

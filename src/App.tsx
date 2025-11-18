@@ -1,5 +1,6 @@
 import { Header } from './components/Header'
 import { HeroSection } from './components/HeroSection'
+import { AssuranceBar } from './components/AssuranceBar'
 import { FeaturedListings } from './components/FeaturedListings'
 import { HighlightsSection } from './components/HighlightsSection'
 import { NeighborhoodStories } from './components/NeighborhoodStories'
@@ -13,15 +14,19 @@ function CtaPanel() {
         <div className="space-y-2">
           <p className="text-sm uppercase text-dry-sage-600">готовы к переезду</p>
           <h3 className="text-2xl font-semibold text-dusty-mauve-900">
-            Куратор свяжется с вами в течение 15 минут
+            Назначим видеозвонок и покажем live-тур по квартирам
           </h3>
           <p className="text-sm text-dusty-mauve-600">
-            Отправим подборку лотов и ссылку на приложение с вашим личным кабинетом.
+            Во время звонка куратор поделится экраном с интерактивной картой, проговорит плюсы и риски
+            и отправит все материалы в ваш мессенджер.
           </p>
         </div>
-        <button className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800">
-          Запланировать созвон
-        </button>
+        <a
+          href="mailto:care@rentme.app?subject=Rentme%20Club%20-%20Live%20tour"
+          className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-center text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+        >
+          Запланировать звонок
+        </a>
       </div>
     </section>
   )
@@ -38,6 +43,7 @@ function App() {
         <Header />
         <main className="relative z-10 space-y-4 pb-16">
           <HeroSection />
+          <AssuranceBar />
           <FeaturedListings />
           <HighlightsSection />
           <NeighborhoodStories />
