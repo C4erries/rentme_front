@@ -119,3 +119,95 @@ export interface ListingOverview {
   calendar: ListingCalendar
   availability_window: AvailabilityWindow
 }
+
+export interface HostListingCatalogResponse {
+  items: HostListingSummary[]
+  meta: {
+    total: number
+    limit: number
+    offset: number
+  }
+}
+
+export interface HostListingSummary {
+  id: string
+  title: string
+  status: string
+  city: string
+  country: string
+  nightly_rate_cents: number
+  guests_limit: number
+  bedrooms: number
+  bathrooms: number
+  area_sq_m: number
+  available_from: string
+  thumbnail_url: string
+  photos?: string[]
+  updated_at: string
+  state: string
+}
+
+export interface HostListingDetailResponse {
+  id: string
+  title: string
+  description: string
+  property_type: string
+  address: ListingAddress
+  amenities: string[]
+  guests_limit: number
+  min_nights: number
+  max_nights: number
+  house_rules: string[]
+  host: {
+    id: string
+  }
+  state: string
+  status: string
+  tags: string[]
+  highlights: string[]
+  nightly_rate_cents: number
+  bedrooms: number
+  bathrooms: number
+  area_sq_m: number
+  thumbnail_url: string
+  photos?: string[]
+  cancellation_policy_id: string
+  available_from: string
+  created_at: string
+  updated_at: string
+}
+
+export interface HostListingPayload {
+  title: string
+  description: string
+  property_type: string
+  address: ListingAddress
+  amenities: string[]
+  house_rules: string[]
+  tags: string[]
+  highlights: string[]
+  thumbnail_url?: string
+  cancellation_policy_id?: string
+  guests_limit: number
+  min_nights: number
+  max_nights: number
+  nightly_rate_cents: number
+  bedrooms: number
+  bathrooms: number
+  area_sq_m: number
+  available_from?: string
+  photos: string[]
+}
+
+export interface HostListingPriceSuggestionResponse {
+  listing_id: string
+  recommended_price_cents: number
+  current_price_cents: number
+  price_level: 'below_market' | 'fair' | 'above_market'
+  price_gap_percent: number
+  message: string
+  range: {
+    check_in: string
+    check_out: string
+  }
+}

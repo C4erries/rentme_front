@@ -158,9 +158,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
   const applyStateToUrl = (nextState: CatalogFormState, options?: { replace?: boolean }) => {
     const query = buildQuery(nextState)
     const path = query ? `/catalog?${query}` : '/catalog'
-    withViewTransition(() => {
-      onNavigate(path, options)
-    })
+    onNavigate(path, options)
   }
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -353,7 +351,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
               </div>
             )}
 
-            <div className="grid gap-4">
+            <div
+              className={`grid gap-4 transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}
+              style={{ minHeight: '24rem' }}
+            >
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
                   <div
@@ -408,7 +409,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                       <div className="flex flex-wrap gap-3 text-sm font-semibold">
                         <button
                           type="button"
-                          onClick={() => withViewTransition(() => setSelectedListingId(card.record.id))}
+                          onClick={() => setSelectedListingId(card.record.id)}
                           className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-dusty-mauve-800 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
                         >
                           Смотреть детали
@@ -483,4 +484,3 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
     </div>
   )
 }
-

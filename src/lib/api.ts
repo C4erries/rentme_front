@@ -3,6 +3,19 @@ const NORMALIZED_BASE_URL = RAW_BASE_URL.replace(/\/$/, '')
 
 export const apiBaseUrl = NORMALIZED_BASE_URL
 
+let authToken: string | null = null
+
+export class ApiError extends Error {
+  status: number
+  payload?: unknown
+
+  constructor(message: string, status: number, payload?: unknown) {
+    super(message)
+    this.status = status
+    this.payload = payload
+  }
+}
+
 export function hasApiBaseUrl(): boolean {
   return apiBaseUrl.length > 0
 }
@@ -15,22 +28,88 @@ export function buildApiUrl(path: string): string {
   return `${apiBaseUrl}${cleanPath}`
 }
 
-interface ApiGetOptions extends RequestInit {
+export function setAuthToken(token: string | null) {
+  authToken = token?.trim() || null
+}
+
+export function getAuthToken(): string | null {
+  return authToken
+}
+
+interface ApiRequestOptions extends RequestInit {
   signal?: AbortSignal
 }
 
-export async function apiGet<T>(path: string, options: ApiGetOptions = {}) {
+async function executeRequest<T>(path: string, init: RequestInit) {
   const url = buildApiUrl(path)
-  const headers = new Headers(options.headers)
+  const headers = buildHeaders(init.headers, init.body != null)
+  const response = await fetch(url, { ...init, headers })
+  if (!response.ok) {
+    const payload = await tryParseJson(response)
+    const message = extractErrorMessage(payload, response.status)
+    throw new ApiError(message, response.status, payload)
+  }
+  const data = (await tryParseJson(response)) as T
+  return { data, response }
+}
+
+function buildHeaders(existing?: HeadersInit, hasBody?: boolean): Headers {
+  const headers = new Headers(existing)
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
-
-  const response = await fetch(url, { ...options, headers })
-  if (!response.ok) {
-    const message = `Request failed with status ${response.status}`
-    throw new Error(message)
+  if (hasBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
   }
-  const data = (await response.json()) as T
-  return { data, response }
+  if (authToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${authToken}`)
+  }
+  return headers
+}
+
+async function tryParseJson(response: Response) {
+  if (response.status === 204) {
+    return undefined
+  }
+  const text = await response.text()
+  if (!text) {
+    return undefined
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
+function extractErrorMessage(payload: unknown, status: number): string {
+  if (payload && typeof payload === 'object' && 'error' in payload) {
+    const errorValue = Reflect.get(payload, 'error')
+    if (typeof errorValue === 'string' && errorValue.trim().length > 0) {
+      return errorValue
+    }
+  }
+  return `Request failed with status ${status}`
+}
+
+export async function apiGet<T>(path: string, options: ApiRequestOptions = {}) {
+  return executeRequest<T>(path, { method: 'GET', ...options })
+}
+
+export async function apiPost<T>(path: string, body: unknown, options: ApiRequestOptions = {}) {
+  const payload = body === undefined ? undefined : JSON.stringify(body)
+  return executeRequest<T>(path, {
+    method: 'POST',
+    body: payload,
+    ...options,
+  })
+}
+
+export async function apiPut<T>(path: string, body: unknown, options: ApiRequestOptions = {}) {
+  const payload = body === undefined ? undefined : JSON.stringify(body)
+  return executeRequest<T>(path, {
+    method: 'PUT',
+    body: payload,
+    ...options,
+  })
 }
