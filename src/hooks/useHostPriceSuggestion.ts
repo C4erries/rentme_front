@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { requestPriceSuggestion } from '../lib/hostListingApi'
 import type { HostListingPriceSuggestionResponse } from '../types/listing'
 
@@ -23,7 +23,7 @@ export function useHostPriceSuggestion(listingId: string | null): UseHostPriceSu
   const fetchSuggestion = useCallback(
     async (params: PriceSuggestionParams = {}) => {
       if (!listingId) {
-        setError('listing not selected')
+        setError(null)
         return
       }
       try {
@@ -40,6 +40,11 @@ export function useHostPriceSuggestion(listingId: string | null): UseHostPriceSu
     },
     [listingId],
   )
+
+  useEffect(() => {
+    setData(null)
+    setError(null)
+  }, [listingId])
 
   return { data, loading, error, fetchSuggestion }
 }

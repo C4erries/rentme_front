@@ -8,6 +8,7 @@ export interface ListingRecord {
   id: string
   title: string
   city: string
+  region: string
   country: string
   address_line: string
   property_type: string
@@ -30,6 +31,7 @@ export interface ListingRecord {
 
 export interface ListingCatalogFilters {
   city: string
+  region: string
   country: string
   location: string
   tags: string[]
@@ -81,6 +83,7 @@ export interface ListingAddress {
   line1: string
   line2: string
   city: string
+  region: string
   country: string
   lat: number
   lon: number
@@ -134,11 +137,16 @@ export interface HostListingSummary {
   title: string
   status: string
   city: string
+  region: string
   country: string
   nightly_rate_cents: number
   guests_limit: number
   bedrooms: number
   bathrooms: number
+  floor: number
+  floors_total: number
+  renovation_score: number
+  building_age_years: number
   area_sq_m: number
   available_from: string
   thumbnail_url: string
@@ -168,6 +176,10 @@ export interface HostListingDetailResponse {
   nightly_rate_cents: number
   bedrooms: number
   bathrooms: number
+  floor: number
+  floors_total: number
+  renovation_score: number
+  building_age_years: number
   area_sq_m: number
   thumbnail_url: string
   photos?: string[]
@@ -194,6 +206,10 @@ export interface HostListingPayload {
   nightly_rate_cents: number
   bedrooms: number
   bathrooms: number
+  floor: number
+  floors_total: number
+  renovation_score: number
+  building_age_years: number
   area_sq_m: number
   available_from?: string
   photos: string[]

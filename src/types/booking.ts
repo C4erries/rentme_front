@@ -8,6 +8,7 @@ export interface BookingListingSnapshot {
   title: string
   address_line1: string
   city: string
+  region: string
   country: string
   thumbnail_url: string
 }

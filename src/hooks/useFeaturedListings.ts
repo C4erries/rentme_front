@@ -113,7 +113,7 @@ export function useFeaturedListings(filters: FeaturedListingFilters = {}) {
 }
 
 export function mapListing(card: ListingRecord): Listing {
-  const locationParts = [card.city, card.address_line].filter(Boolean)
+  const locationParts = [card.city, card.region, card.address_line].filter(Boolean)
   const areaParts: string[] = []
   if (card.area_sq_m) {
     areaParts.push(`${Math.round(card.area_sq_m)} м²`)
@@ -162,7 +162,7 @@ function formatAvailableDate(value: string | undefined) {
 }
 
 function resolveMood(card: ListingRecord): ListingMood {
-  const context = [card.city, card.address_line, ...(card.tags ?? []), ...(card.highlights ?? [])]
+  const context = [card.city, card.region, card.address_line, ...(card.tags ?? []), ...(card.highlights ?? [])]
     .join(' ')
     .toLowerCase()
   if (context.match(/истор|камин|сад/)) {
@@ -205,4 +205,3 @@ function dedupeStrings(values: string[] | null | undefined, limit: number) {
   }
   return result
 }
-

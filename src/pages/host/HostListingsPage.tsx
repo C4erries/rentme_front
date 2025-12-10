@@ -83,6 +83,13 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
             </select>
             <button
               type="button"
+              onClick={() => withViewTransition(() => onNavigate('/'))}
+              className="rounded-full border border-dusty-mauve-300 px-6 py-3 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dusty-mauve-400"
+            >
+              Вернуться на главную
+            </button>
+            <button
+              type="button"
               onClick={() => withViewTransition(() => onNavigate('/host/listings/new'))}
               className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
             >
@@ -135,7 +142,7 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
               <div className="flex flex-1 flex-col gap-4 p-6">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                    {item.city}, {item.country}
+                    {item.city}, {item.region || item.country}
                   </p>
                   <h2 className="text-xl font-semibold text-dusty-mauve-900">{item.title}</h2>
                 </div>

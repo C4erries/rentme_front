@@ -76,7 +76,7 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
               <div className="flex flex-col gap-4 p-6">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                    {booking.listing.city}, {booking.listing.country}
+                    {booking.listing.city}, {booking.listing.region || booking.listing.country}
                   </p>
                   <h2 className="text-xl font-semibold text-dusty-mauve-900">{booking.listing.title}</h2>
                   <p className="text-sm text-dusty-mauve-500">{booking.listing.address_line1}</p>

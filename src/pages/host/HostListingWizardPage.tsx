@@ -40,6 +40,7 @@ const emptyForm: HostListingPayload = {
     line1: '',
     line2: '',
     city: '',
+    region: '',
     country: '',
     lat: 0,
     lon: 0,
@@ -56,6 +57,10 @@ const emptyForm: HostListingPayload = {
   nightly_rate_cents: 0,
   bedrooms: 1,
   bathrooms: 1,
+  floor: 0,
+  floors_total: 0,
+  renovation_score: 5,
+  building_age_years: 0,
   area_sq_m: 0,
   available_from: '',
   photos: [],
@@ -76,19 +81,37 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const [savingError, setSavingError] = useState<string | null>(null)
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState<string | null>(null)
+  const [noMaxNights, setNoMaxNights] = useState(false)
   const updateForm = (patch: Partial<HostListingPayload>) =>
     setForm((prev) => ({ ...prev, ...patch }))
   const updateAddress = (patch: Partial<HostListingPayload['address']>) =>
     setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }))
   const updatePhotos = (photos: string[]) => updateForm({ photos })
+  const toggleNoMaxNights = (enabled: boolean) => {
+    setNoMaxNights(enabled)
+    setForm((prev) => ({
+      ...prev,
+      max_nights: enabled
+        ? 0
+        : prev.max_nights === 0
+          ? Math.max(prev.min_nights, 1)
+          : prev.max_nights,
+    }))
+  }
 
   useEffect(() => {
     if (listingDetail) {
+      const address = listingDetail.address || emptyForm.address
+      const resolvedRegion = address.region || address.country || ''
       setForm({
         title: listingDetail.title,
         description: listingDetail.description,
         property_type: listingDetail.property_type,
-        address: listingDetail.address,
+        address: {
+          ...address,
+          region: resolvedRegion,
+          country: address.country ?? '',
+        },
         amenities: listingDetail.amenities ?? [],
         house_rules: listingDetail.house_rules ?? [],
         tags: listingDetail.tags ?? [],
@@ -101,14 +124,21 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         nightly_rate_cents: listingDetail.nightly_rate_cents,
         bedrooms: listingDetail.bedrooms,
         bathrooms: listingDetail.bathrooms,
+        floor: listingDetail.floor,
+        floors_total: listingDetail.floors_total,
+        renovation_score: listingDetail.renovation_score,
+        building_age_years: listingDetail.building_age_years,
         area_sq_m: listingDetail.area_sq_m,
         available_from: listingDetail.available_from?.slice(0, 10) ?? '',
         photos: listingDetail.photos ?? [],
       })
+      setNoMaxNights(listingDetail.max_nights === 0)
       setStatusNote(`Текущий статус: ${listingDetail.status}`)
-      priceSuggestion.fetchSuggestion()
+      if (listingId) {
+        priceSuggestion.fetchSuggestion()
+      }
     }
-  }, [listingDetail])
+  }, [listingDetail, listingId])
 
   const handleBack = () => {
     if (currentStep === 0) {
@@ -199,6 +229,18 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
               value={form.bathrooms}
               onChange={(value) => updateForm({ bathrooms: Number(value) })}
             />
+            <Input
+              label="Этаж"
+              type="number"
+              value={form.floor}
+              onChange={(value) => updateForm({ floor: Number(value) || 0 })}
+            />
+            <Input
+              label="Этажность дома"
+              type="number"
+              value={form.floors_total}
+              onChange={(value) => updateForm({ floors_total: Number(value) || 0 })}
+            />
           </div>
         )
       case 1:
@@ -219,18 +261,22 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
               }
             />
             <Input
-              label="Город"
+              label="?????"
               value={form.address.city}
               onChange={(value) =>
                 updateAddress({ city: String(value) })
               }
             />
             <Input
-              label="Страна"
-              value={form.address.country}
-              onChange={(value) =>
-                updateAddress({ country: String(value) })
-              }
+              label="?????? / ???????"
+              value={form.address.region}
+              onChange={(value) => {
+                const regionValue = String(value)
+                updateAddress({
+                  region: regionValue,
+                  country: form.address.country || regionValue,
+                })
+              }}
             />
             <Input label="Широта" type="number" value={form.address.lat} onChange={(value) => updateAddress({ lat: Number(value) })} />
             <Input label="Долгота" type="number" value={form.address.lon} onChange={(value) => updateAddress({ lon: Number(value) })} />
@@ -261,10 +307,34 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         return (
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
-              <Input label="Цена за ночь (RUB)" type="number" value={form.nightly_rate_cents / 100 || ''} onChange={(value) => updateForm({ nightly_rate_cents: Math.round(Number(value) * 100) })} />
-              <Input label="Мин. ночей" type="number" value={form.min_nights} onChange={(value) => updateForm({ min_nights: Number(value) })} />
-              <Input label="Макс. ночей" type="number" value={form.max_nights} onChange={(value) => updateForm({ max_nights: Number(value) })} />
+              <Input label="Площадь, м²" type="number" value={form.area_sq_m} onChange={(value) => updateForm({ area_sq_m: Number(value) || 0 })} />
+              <Input label="Уровень ремонта (0–10)" type="number" value={form.renovation_score} onChange={(value) => updateForm({ renovation_score: Number(value) || 0 })} />
+              <Input label="Возраст дома, лет" type="number" value={form.building_age_years} onChange={(value) => updateForm({ building_age_years: Number(value) || 0 })} />
             </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Input label="Цена за ночь (RUB)" type="number" value={form.nightly_rate_cents / 100 || ''} onChange={(value) => updateForm({ nightly_rate_cents: Math.round(Number(value) * 100) || 0 })} />
+              <Input label="Мин. ночей" type="number" value={form.min_nights} onChange={(value) => updateForm({ min_nights: Number(value) })} />
+              <Input
+                label="????????. ??????????"
+                type="number"
+                value={noMaxNights ? "" : form.max_nights}
+                disabled={noMaxNights}
+                onChange={(value) => {
+                  const parsed = Number(value) || 0
+                  setNoMaxNights(parsed === 0)
+                  updateForm({ max_nights: parsed })
+                }}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-dusty-mauve-700">
+              <input
+                type="checkbox"
+                checked={noMaxNights}
+                onChange={(event) => toggleNoMaxNights(event.target.checked)}
+                className="h-4 w-4 rounded border-dusty-mauve-300"
+              />
+              <span>??? ????????????? ?????????? ?????</span>
+            </label>
             <Input label="Доступно с" type="date" value={form.available_from ?? ''} onChange={(value) => updateForm({ available_from: String(value) })} />
             <div className="rounded-3xl border border-dusty-mauve-200 bg-white/80 p-5 shadow-soft">
               <div className="flex items-center justify-between">
@@ -275,26 +345,49 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                 <button
                   type="button"
                   onClick={() => priceSuggestion.fetchSuggestion({ guests: form.guests_limit })}
+                  disabled={priceSuggestion.loading || !listingId}
                   className="rounded-full bg-dusty-mauve-900 px-4 py-2 text-xs font-semibold text-dusty-mauve-50"
                 >
-                  {priceSuggestion.loading ? 'Идёт расчёт...' : 'Получить рекомендацию'}
+                  {priceSuggestion.loading ? 'Считаем рекомендацию…' : 'Обновить рекомендацию цены'}
                 </button>
               </div>
+              {priceSuggestion.loading && (
+                <p className="mt-3 text-sm text-dusty-mauve-500">Считаем рекомендацию…</p>
+              )}
               {priceSuggestion.error && (
                 <p className="mt-3 text-sm text-red-600">{priceSuggestion.error}</p>
               )}
               {priceSuggestion.data && (
                 <div className="mt-4 space-y-2 text-sm text-dusty-mauve-700">
-                  <p className="text-base font-semibold text-dusty-mauve-900">
-                    {formatMoney(priceSuggestion.data.recommended_price_cents)}{' '}
-                    <span className="text-xs text-dry-sage-500">({priceSuggestion.data.price_level})</span>
-                  </p>
-                  <p>{priceSuggestion.data.message}</p>
+                  <div className="font-medium">
+                    Рекомендованная цена: {formatMoney(priceSuggestion.data.recommended_price_cents)}
+                  </div>
+                  <div className="text-slate-600">
+                    Текущая: {formatMoney(priceSuggestion.data.current_price_cents)} · Уровень: {priceSuggestion.data.price_level}
+                  </div>
+                  <div className="mt-1 text-slate-500">{priceSuggestion.data.message}</div>
+                  <button
+                    type="button"
+                    className="mt-2 rounded bg-indigo-600 px-3 py-1 text-white text-xs"
+                    onClick={() =>
+                      updateForm({ nightly_rate_cents: priceSuggestion.data!.recommended_price_cents })
+                    }
+                  >
+                    Применить рекомендованную цену
+                  </button>
                   <p className="text-xs text-dusty-mauve-500">
                     Период: {priceSuggestion.data.range.check_in} — {priceSuggestion.data.range.check_out}
                   </p>
                 </div>
               )}
+                <button
+                  type="button"
+                  className="mt-2 text-xs text-indigo-600 underline"
+                  onClick={() => priceSuggestion.fetchSuggestion({ guests: form.guests_limit })}
+                  disabled={priceSuggestion.loading || !listingId}
+                >
+                Обновить рекомендацию цены
+              </button>
             </div>
           </div>
         )
@@ -307,7 +400,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                 {form.title || 'Название не указано'} — {form.property_type || 'тип не задан'}.
               </p>
               <p className="text-sm text-dusty-mauve-600">
-                {form.address.city}, {form.address.country}
+                {form.address.city}, {form.address.region || form.address.country}
               </p>
               <p className="text-sm text-dusty-mauve-600">
                 {form.guests_limit} гостей · {form.bedrooms} спальни · {form.bathrooms} ванны
@@ -379,16 +472,18 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         <div className="mt-8 space-y-4">
           <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-dusty-mauve-600">
             {steps.map((step, index) => (
-              <span
+              <button
+                type="button"
                 key={step}
                 className={`rounded-2xl px-4 py-2 ${
                   index === currentStep
                     ? 'bg-dusty-mauve-900 text-dusty-mauve-50'
                     : 'bg-white/70 text-dusty-mauve-500'
                 }`}
+                onClick={() => setCurrentStep(index)}
               >
                 {step}
-              </span>
+              </button>
             ))}
           </div>
           <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-soft">
@@ -426,6 +521,7 @@ function Input({
   component = 'input',
   onChange,
   options,
+  disabled = false,
 }: {
   label: string
   value: string | number
@@ -433,6 +529,7 @@ function Input({
   component?: 'input' | 'select'
   onChange: (value: string | number) => void
   options?: string[]
+  disabled?: boolean
 }) {
   if (component === 'select') {
     return (
@@ -441,6 +538,7 @@ function Input({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
           className="rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
         >
           {options?.map((option) => (
@@ -459,6 +557,7 @@ function Input({
         type={type}
         value={value}
         onChange={(event) => onChange(type === 'number' ? Number(event.target.value) : event.target.value)}
+        disabled={disabled}
         className="rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
       />
     </label>
