@@ -1,9 +1,10 @@
-import { apiGet, apiPost, apiPut } from './api'
+import { apiGet, apiPost, apiPostForm, apiPut } from './api'
 import type {
   HostListingCatalogResponse,
   HostListingDetailResponse,
   HostListingPayload,
   HostListingPriceSuggestionResponse,
+  HostListingPhotoUploadResponse,
 } from '../types/listing'
 
 interface ListHostListingsParams {
@@ -55,4 +56,10 @@ interface PriceSuggestionOptions {
 
 export async function requestPriceSuggestion(listingId: string, options: PriceSuggestionOptions = {}) {
   return apiPost<HostListingPriceSuggestionResponse>(`/host/listings/${listingId}/price-suggestion`, { ...options })
+}
+
+export async function uploadListingPhoto(listingId: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return apiPostForm<HostListingPhotoUploadResponse>(`/host/listings/${listingId}/photos`, form)
 }

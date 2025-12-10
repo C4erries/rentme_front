@@ -4,6 +4,7 @@ import {
   createHostListing,
   publishHostListing,
   updateHostListing,
+  uploadListingPhoto,
 } from '../../lib/hostListingApi'
 import { useHostListingDetail } from '../../hooks/useHostListingDetail'
 import { useHostPriceSuggestion } from '../../hooks/useHostPriceSuggestion'
@@ -82,11 +83,24 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState<string | null>(null)
   const [noMaxNights, setNoMaxNights] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
   const updateForm = (patch: Partial<HostListingPayload>) =>
     setForm((prev) => ({ ...prev, ...patch }))
   const updateAddress = (patch: Partial<HostListingPayload['address']>) =>
     setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }))
-  const updatePhotos = (photos: string[]) => updateForm({ photos })
+  const updatePhotos = (photos: string[]) => {
+    setForm((prev) => {
+      const nextThumbnail =
+        prev.thumbnail_url && photos.includes(prev.thumbnail_url)
+          ? prev.thumbnail_url
+          : photos[0] ?? ''
+      return { ...prev, photos, thumbnail_url: nextThumbnail }
+    })
+  }
+  useEffect(() => {
+    setPhotoUploadError(null)
+  }, [listingId])
   const toggleNoMaxNights = (enabled: boolean) => {
     setNoMaxNights(enabled)
     setForm((prev) => ({
@@ -103,6 +117,8 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
     if (listingDetail) {
       const address = listingDetail.address || emptyForm.address
       const resolvedRegion = address.region || address.country || ''
+      const photos = listingDetail.photos ?? []
+      const thumbnailURL = listingDetail.thumbnail_url || photos[0] || ''
       setForm({
         title: listingDetail.title,
         description: listingDetail.description,
@@ -116,7 +132,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         house_rules: listingDetail.house_rules ?? [],
         tags: listingDetail.tags ?? [],
         highlights: listingDetail.highlights ?? [],
-        thumbnail_url: listingDetail.thumbnail_url,
+        thumbnail_url: thumbnailURL,
         cancellation_policy_id: listingDetail.cancellation_policy_id,
         guests_limit: listingDetail.guests_limit,
         min_nights: listingDetail.min_nights,
@@ -130,7 +146,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         building_age_years: listingDetail.building_age_years,
         area_sq_m: listingDetail.area_sq_m,
         available_from: listingDetail.available_from?.slice(0, 10) ?? '',
-        photos: listingDetail.photos ?? [],
+        photos,
       })
       setNoMaxNights(listingDetail.max_nights === 0)
       setStatusNote(`Текущий статус: ${listingDetail.status}`)
@@ -151,6 +167,32 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep((step) => Math.min(steps.length - 1, step + 1))
+    }
+  }
+
+  const handlePhotoUpload = async (file: File | null) => {
+    if (!file) {
+      return
+    }
+    if (!listingId) {
+      setPhotoUploadError('Save the draft first to upload photos')
+      return
+    }
+    setPhotoUploadError(null)
+    setPhotoUploading(true)
+    try {
+      const response = await uploadListingPhoto(listingId, file)
+      const photos = response.data.photos ?? []
+      const thumbnail = response.data.thumbnail_url || photos[0] || ''
+      setForm((prev) => ({
+        ...prev,
+        photos,
+        thumbnail_url: thumbnail || prev.thumbnail_url,
+      }))
+    } catch (err) {
+      setPhotoUploadError((err as Error).message)
+    } finally {
+      setPhotoUploading(false)
     }
   }
 
@@ -295,12 +337,38 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
       case 3:
         return (
           <div className="space-y-4">
+            <div className="rounded-3xl border border-white/60 bg-white/80 p-4 shadow-soft">
+              <p className="text-sm font-semibold text-dusty-mauve-900">Upload photos</p>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={!listingId || photoUploading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  void handlePhotoUpload(file)
+                  event.target.value = ''
+                }}
+                className="mt-2 block w-full rounded-2xl border border-dusty-mauve-200 bg-white/60 px-3 py-2 text-sm text-dusty-mauve-900 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <p className="mt-2 text-xs text-dusty-mauve-500">
+                {listingId
+                  ? 'JPG/PNG/WebP up to 10 MB'
+                  : 'Save the listing draft to get an id before uploading photos'}
+              </p>
+              {photoUploadError && <p className="mt-2 text-xs text-red-600">{photoUploadError}</p>}
+              {photoUploading && <p className="mt-2 text-xs text-dusty-mauve-500">Uploading photo...</p>}
+            </div>
             <Input
-              label="Миниатюра"
+              label="Cover image URL (optional)"
               value={form.thumbnail_url ?? ''}
               onChange={(value) => updateForm({ thumbnail_url: String(value) })}
             />
-            <PhotoList photos={form.photos} onChange={(photos) => updatePhotos(photos)} />
+            <PhotoList
+              photos={form.photos}
+              thumbnailUrl={form.thumbnail_url}
+              onChange={(photos) => updatePhotos(photos)}
+              onSelectCover={(url) => updateForm({ thumbnail_url: url })}
+            />
           </div>
         )
       case 4:
@@ -589,19 +657,13 @@ function Textarea({
 
 type PhotoListProps = {
   photos: string[]
+  thumbnailUrl?: string
   onChange: (photos: string[]) => void
+  onSelectCover?: (url: string) => void
 }
 
-function PhotoList({ photos, onChange }: PhotoListProps) {
-  const updatePhoto = (index: number, value: string) => {
-    const copy = [...photos]
-    copy[index] = value
-    onChange(copy)
-  }
-
-  const addPhoto = () => {
-    onChange([...photos, ''])
-  }
+function PhotoList({ photos, thumbnailUrl, onChange, onSelectCover }: PhotoListProps) {
+  const [manualUrl, setManualUrl] = useState('')
 
   const removePhoto = (index: number) => {
     const copy = [...photos]
@@ -609,34 +671,77 @@ function PhotoList({ photos, onChange }: PhotoListProps) {
     onChange(copy)
   }
 
+  const addManualPhoto = () => {
+    const trimmed = manualUrl.trim()
+    if (!trimmed) {
+      return
+    }
+    onChange([...photos, trimmed])
+    if (!thumbnailUrl) {
+      onSelectCover?.(trimmed)
+    }
+    setManualUrl('')
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-dusty-mauve-900">Фотографии</p>
-      {photos.map((photo, index) => (
-        <div key={index} className="flex items-center gap-3">
+      <p className="text-sm font-semibold text-dusty-mauve-900">Photos</p>
+      {photos.length === 0 && (
+        <p className="text-xs text-dusty-mauve-500">Add at least one photo so guests can see the space.</p>
+      )}
+      {photos.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {photos.map((photo, index) => (
+            <div key={`${photo}-${index}`} className="relative overflow-hidden rounded-2xl border border-white/60 bg-white/80 shadow-sm">
+              <img
+                src={photo}
+                alt="Listing photo"
+                className="h-40 w-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/50 px-3 py-2 text-xs text-white">
+                {thumbnailUrl === photo ? (
+                  <span className="rounded-full bg-green-600/80 px-2 py-0.5 text-[11px]">Cover</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCover?.(photo)}
+                    className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-dusty-mauve-900"
+                  >
+                    Set as cover
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removePhoto(index)}
+                  className="rounded-full bg-red-600/80 px-2 py-0.5 text-[11px] font-semibold text-white"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="rounded-2xl border border-dusty-mauve-200 bg-white/70 p-3">
+        <label className="text-xs font-semibold text-dusty-mauve-800">Add photo from URL</label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             type="text"
-            value={photo}
-            onChange={(event) => updatePhoto(index, event.target.value)}
+            value={manualUrl}
+            onChange={(event) => setManualUrl(event.target.value)}
             placeholder="https://example.com/photo.jpg"
             className="flex-1 rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
           />
           <button
             type="button"
-            onClick={() => removePhoto(index)}
-            className="text-xs font-semibold text-red-600"
+            onClick={addManualPhoto}
+            className="rounded-2xl border border-dusty-mauve-300 px-4 py-2 text-xs font-semibold text-dusty-mauve-900"
           >
-            Удалить
+            Add photo
           </button>
         </div>
-      ))}
-      <button
-        type="button"
-        onClick={addPhoto}
-        className="rounded-2xl border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold text-dusty-mauve-900"
-      >
-        Добавить фото
-      </button>
+      </div>
     </div>
   )
 }
@@ -650,9 +755,14 @@ function splitLines(value: string) {
 
 function preparePayload(form: HostListingPayload) {
   const goodPhotos = (form.photos ?? []).filter(Boolean)
+  const cover =
+    form.thumbnail_url && goodPhotos.includes(form.thumbnail_url)
+      ? form.thumbnail_url
+      : goodPhotos[0] ?? ''
   return {
     ...form,
     photos: goodPhotos,
+    thumbnail_url: cover || undefined,
     available_from: form.available_from ? new Date(form.available_from).toISOString() : undefined,
   }
 }

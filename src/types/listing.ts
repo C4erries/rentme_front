@@ -189,6 +189,12 @@ export interface HostListingDetailResponse {
   updated_at: string
 }
 
+export interface HostListingPhotoUploadResponse {
+  listing_id: string
+  photos: string[]
+  thumbnail_url: string
+}
+
 export interface HostListingPayload {
   title: string
   description: string

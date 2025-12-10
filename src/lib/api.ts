@@ -42,7 +42,8 @@ interface ApiRequestOptions extends RequestInit {
 
 async function executeRequest<T>(path: string, init: RequestInit) {
   const url = buildApiUrl(path)
-  const headers = buildHeaders(init.headers, init.body != null)
+  const shouldSendJSON = init.body != null && !(init.body instanceof FormData)
+  const headers = buildHeaders(init.headers, shouldSendJSON)
   const response = await fetch(url, { ...init, headers })
   if (!response.ok) {
     const payload = await tryParseJson(response)
@@ -53,12 +54,12 @@ async function executeRequest<T>(path: string, init: RequestInit) {
   return { data, response }
 }
 
-function buildHeaders(existing?: HeadersInit, hasBody?: boolean): Headers {
+function buildHeaders(existing?: HeadersInit, setJSONContentType?: boolean): Headers {
   const headers = new Headers(existing)
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
-  if (hasBody && !headers.has('Content-Type')) {
+  if (setJSONContentType && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (authToken && !headers.has('Authorization')) {
@@ -110,6 +111,14 @@ export async function apiPut<T>(path: string, body: unknown, options: ApiRequest
   return executeRequest<T>(path, {
     method: 'PUT',
     body: payload,
+    ...options,
+  })
+}
+
+export async function apiPostForm<T>(path: string, form: FormData, options: ApiRequestOptions = {}) {
+  return executeRequest<T>(path, {
+    method: 'POST',
+    body: form,
     ...options,
   })
 }
