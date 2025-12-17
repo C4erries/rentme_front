@@ -6,8 +6,12 @@ import { HostListingWizardPage } from './pages/host/HostListingWizardPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { GuestBookingsPage } from './pages/me/GuestBookingsPage'
+import { ChatListPage } from './pages/me/ChatListPage'
+import { ChatThreadPage } from './pages/me/ChatThreadPage'
+import { useChatList } from './hooks/useChatList'
 import { withViewTransition } from './lib/viewTransitions'
 import { useAuth } from './context/AuthContext'
+import { ChatBadgeProvider } from './context/ChatBadgeContext'
 
 interface AppRoute {
   pathname: string
@@ -39,6 +43,7 @@ function isHostWizardPath(pathname: string): boolean {
 function App() {
   const [route, setRoute] = useState<AppRoute>(() => getCurrentRoute())
   const { isAuthenticated, user, isLoading } = useAuth()
+  const chatState = useChatList({ enabled: isAuthenticated, intervalMs: 8000 })
 
   useEffect(() => {
     const handlePopState = () => setRoute(getCurrentRoute())
@@ -59,17 +64,42 @@ function App() {
 
   const pathname = normalizePathname(route.pathname)
   const redirectTarget = useMemo(() => new URLSearchParams(route.search).get('redirect') ?? undefined, [route.search])
+  const wrapWithChatBadge = (element: ReactElement) => (
+    <ChatBadgeProvider value={chatState.hasUnread}>{element}</ChatBadgeProvider>
+  )
 
   if (isLoading) {
-    return <CenteredMessage message="Загружаем ваш профиль..." />
+    return wrapWithChatBadge(<CenteredMessage message="Загружаем ваш профиль..." />)
   }
 
   if (pathname === '/login') {
-    return <LoginPage onNavigate={navigate} redirectTo={redirectTarget} />
+    return wrapWithChatBadge(<LoginPage onNavigate={navigate} redirectTo={redirectTarget} />)
   }
 
   if (pathname === '/register') {
-    return <RegisterPage onNavigate={navigate} />
+    return wrapWithChatBadge(<RegisterPage onNavigate={navigate} />)
+  }
+
+  const chatMatch = pathname.match(/^\/me\/chats\/([^/]+)$/)
+  if (chatMatch) {
+    return renderProtected(
+      <ChatThreadPage conversationId={chatMatch[1]} onNavigate={navigate} refreshChats={chatState.refresh} />,
+    )
+  }
+
+  if (pathname === '/me/chats') {
+    return renderProtected(
+      <ChatListPage
+        onNavigate={navigate}
+        chatState={{
+          data: chatState.data,
+          loading: chatState.loading,
+          error: chatState.error,
+          refresh: chatState.refresh,
+          hasUnread: chatState.hasUnread,
+        }}
+      />,
+    )
   }
 
   if (pathname.startsWith('/me')) {
@@ -77,7 +107,7 @@ function App() {
   }
 
   if (pathname.startsWith('/catalog')) {
-    return <CatalogPage route={route} onNavigate={navigate} />
+    return wrapWithChatBadge(<CatalogPage route={route} onNavigate={navigate} />)
   }
 
   if (pathname === '/host/listings') {
@@ -89,30 +119,34 @@ function App() {
   }
 
   if (pathname === '/how-it-works') {
-    return <LandingPage onNavigate={navigate} focusSection="how-it-works" />
+    return wrapWithChatBadge(<LandingPage onNavigate={navigate} focusSection="how-it-works" />)
   }
 
   if (pathname === '/stories') {
-    return <LandingPage onNavigate={navigate} focusSection="stories" />
+    return wrapWithChatBadge(<LandingPage onNavigate={navigate} focusSection="stories" />)
   }
 
-  return <LandingPage onNavigate={navigate} />
+  return wrapWithChatBadge(<LandingPage onNavigate={navigate} />)
 
   function renderProtected(element: ReactElement, options: { requireHost?: boolean } = {}) {
     if (!isAuthenticated) {
       const target = `/login?redirect=${encodeURIComponent(pathname + route.search)}`
-      return <RedirectingScreen message="Перенаправляем на вход..." target={target} onNavigate={navigate} />
+      return wrapWithChatBadge(
+        <RedirectingScreen message="Перенаправляем на вход..." target={target} onNavigate={navigate} />,
+      )
     }
     if (options.requireHost && !user?.roles?.includes('host')) {
       return (
-        <CenteredMessage
-          message="Для доступа к кабинетам хоста нужна роль «host». Оставьте заявку в поддержке или добавьте роль в профиле."
-          actionLabel="Вернуться на главную"
-          onAction={() => navigate('/')}
-        />
+        wrapWithChatBadge(
+          <CenteredMessage
+            message="Для доступа к кабинетам хоста нужна роль «host». Оставьте заявку в поддержке или добавьте роль в профиле."
+            actionLabel="Вернуться на главную"
+            onAction={() => navigate('/')}
+          />,
+        )
       )
     }
-    return element
+    return wrapWithChatBadge(element)
   }
 }
 

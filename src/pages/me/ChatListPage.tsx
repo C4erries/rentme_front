@@ -1,0 +1,128 @@
+import { Header } from '../../components/Header'
+import { withViewTransition } from '../../lib/viewTransitions'
+import type { ConversationList } from '../../types/chat'
+
+interface ChatListPageProps {
+  onNavigate: (path: string, options?: { replace?: boolean }) => void
+  chatState: {
+    data: ConversationList | null
+    loading: boolean
+    error: string | null
+    refresh: () => void
+    hasUnread: boolean
+  }
+}
+
+const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
+  const conversations = chatState.data?.items ?? []
+
+  return (
+    <div className="min-h-screen bg-dusty-mauve-50">
+      <Header onNavigate={onNavigate} />
+      <div className="container py-12">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Внутренний мессенджер</p>
+            <h1 className="text-3xl font-semibold text-dusty-mauve-900">Сообщения</h1>
+            {chatState.hasUnread && (
+              <p className="mt-1 text-sm text-red-600">Есть новые сообщения, загляните в диалоги</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => withViewTransition(chatState.refresh)}
+              className="rounded-full border border-dusty-mauve-200 px-5 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400"
+            >
+              Обновить список
+            </button>
+            <button
+              type="button"
+              onClick={() => withViewTransition(() => onNavigate('/catalog'))}
+              className="rounded-full bg-dusty-mauve-900 px-5 py-2 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+            >
+              Найти новое жильё
+            </button>
+          </div>
+        </div>
+
+        {chatState.loading && (
+          <div className="mt-8 rounded-3xl border border-white/60 bg-white/80 p-4 text-sm text-dusty-mauve-600 shadow-soft">
+            Загружаем ваши чаты...
+          </div>
+        )}
+        {chatState.error && (
+          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700 shadow-soft">
+            {chatState.error}
+          </div>
+        )}
+
+        {!chatState.loading && conversations.length === 0 && (
+          <div className="mt-10 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-10 text-center shadow-soft">
+            <p className="text-lg font-semibold text-dusty-mauve-900">Пока нет переписок</p>
+            <p className="mt-2 text-sm text-dusty-mauve-500">
+              Напишите хозяину понравившегося объявления из каталога или дождитесь новых откликов.
+            </p>
+            <button
+              type="button"
+              onClick={() => withViewTransition(() => onNavigate('/catalog'))}
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-dry-sage-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-dry-sage-500"
+            >
+              Перейти в каталог
+            </button>
+          </div>
+        )}
+
+        <div className="mt-10 grid gap-4 lg:grid-cols-2">
+          {conversations.map((conversation) => (
+            <article
+              key={conversation.id}
+              className="flex flex-col gap-3 rounded-3xl border border-white/60 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-dry-sage-200"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col">
+                  <p className="text-xs uppercase tracking-widest text-dry-sage-500">
+                    {conversation.listing_id ? `Объявление ${conversation.listing_id}` : 'Прямой диалог'}
+                  </p>
+                  <h2 className="text-xl font-semibold text-dusty-mauve-900">Чат #{conversation.id.slice(0, 8)}</h2>
+                  <p className="text-sm text-dusty-mauve-500">
+                    {conversation.participants.length} участников · {formatActivity(conversation)}
+                  </p>
+                </div>
+                {conversation.has_unread && <span className="h-3 w-3 rounded-full bg-red-500" />}
+              </div>
+              <div className="flex items-center justify-between text-sm text-dusty-mauve-600">
+                <span className="rounded-full bg-dry-sage-50 px-3 py-1 text-dry-sage-700">
+                  Последний отправитель: {conversation.last_message_sender_id || '—'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => withViewTransition(() => onNavigate(`/me/chats/${conversation.id}`))}
+                  className="rounded-full border border-dusty-mauve-200 px-4 py-2 font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
+                >
+                  Открыть
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatActivity(conversation: ConversationList['items'][number]) {
+  const timestamp = conversation.last_message_at || conversation.created_at
+  try {
+    return dateFormatter.format(new Date(timestamp))
+  } catch {
+    return 'неизвестно'
+  }
+}

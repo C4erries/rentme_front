@@ -2,9 +2,11 @@ import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { withViewTransition } from '../lib/viewTransitions'
+import { useChatBadge } from '../context/ChatBadgeContext'
 
 interface HeaderProps {
   onNavigate?: (path: string, options?: { replace?: boolean }) => void
+  hasUnreadChats?: boolean
 }
 
 const navLinks = [
@@ -13,11 +15,13 @@ const navLinks = [
   { label: 'Истории гостей', hint: 'Реальные маршруты и районы', href: '/stories' },
 ]
 
-export function Header({ onNavigate }: HeaderProps) {
+export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const { isAuthenticated, user, logout } = useAuth()
   const isHost = Boolean(user?.roles?.includes('host'))
+  const unreadChats = typeof hasUnreadChats === 'boolean' ? hasUnreadChats : useChatBadge()
+  const unreadDotClass = unreadChats ? 'bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.35)]' : 'bg-dry-sage-500'
 
   const handleLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('/')) {
@@ -103,11 +107,19 @@ export function Header({ onNavigate }: HeaderProps) {
                     onClick={() => setAccountMenuOpen((prev) => !prev)}
                     className="inline-flex items-center justify-center gap-2 rounded-full border border-dusty-mauve-200 px-5 py-2 text-dusty-mauve-900 hover:border-dry-sage-400"
                   >
-                    <span className="h-2 w-2 rounded-full bg-dry-sage-500" />
+                    <span className={`h-2 w-2 rounded-full ${unreadDotClass}`} />
                     {user?.name || 'Профиль'}
                   </button>
                   {accountMenuOpen && (
                     <div className="absolute right-0 z-20 mt-3 w-56 rounded-2xl border border-white/60 bg-white/95 p-3 text-sm text-dusty-mauve-800 shadow-soft">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
+                        onClick={() => navigate('/me/chats')}
+                      >
+                        Сообщения
+                        {unreadChats && <span className="h-2 w-2 rounded-full bg-red-500" />}
+                      </button>
                       <button
                         type="button"
                         className="flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
@@ -185,4 +197,3 @@ export function Header({ onNavigate }: HeaderProps) {
     </header>
   )
 }
-
