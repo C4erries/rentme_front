@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from './api'
-import type { ChatMessageList, ConversationList } from '../types/chat'
+import type { ChatMessageList, Conversation, ConversationList } from '../types/chat'
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams()
@@ -39,4 +39,8 @@ export function sendChatMessage(conversationId: string, text: string) {
 export function markChatRead(conversationId: string, lastReadMessageId?: string) {
   const payload = lastReadMessageId ? { last_read_message_id: lastReadMessageId } : {}
   return apiPost<{ read_at?: string }>(`/chats/${conversationId}/read`, payload)
+}
+
+export function createDirectConversation(userId: string) {
+  return apiPost<Conversation>('/chats', { user_id: userId })
 }

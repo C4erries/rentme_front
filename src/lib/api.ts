@@ -36,7 +36,7 @@ export function getAuthToken(): string | null {
   return authToken
 }
 
-interface ApiRequestOptions extends RequestInit {
+export interface ApiRequestOptions extends RequestInit {
   signal?: AbortSignal
 }
 

@@ -20,6 +20,7 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const { isAuthenticated, user, logout } = useAuth()
   const isHost = Boolean(user?.roles?.includes('host'))
+  const isAdmin = Boolean(user?.roles?.includes('admin'))
   const unreadChats = typeof hasUnreadChats === 'boolean' ? hasUnreadChats : useChatBadge()
   const unreadDotClass = unreadChats ? 'bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.35)]' : 'bg-dry-sage-500'
 
@@ -127,6 +128,15 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                       >
                         Мои поездки
                       </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
+                          onClick={() => navigate('/admin/users')}
+                        >
+                          Админка
+                        </button>
+                      )}
                       {isHost && (
                         <button
                           type="button"
