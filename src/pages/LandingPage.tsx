@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Header } from '../components/Header'
 import { HeroSection, type HeroSearchPayload } from '../components/HeroSection'
 import { AssuranceBar } from '../components/AssuranceBar'
@@ -9,6 +10,7 @@ import { Footer } from '../components/Footer'
 
 interface LandingPageProps {
   onNavigate: (path: string) => void
+  focusSection?: 'how-it-works' | 'stories'
 }
 
 interface CatalogSearchParams {
@@ -18,7 +20,7 @@ interface CatalogSearchParams {
   guests?: number
 }
 
-export function LandingPage({ onNavigate }: LandingPageProps) {
+export function LandingPage({ onNavigate, focusSection }: LandingPageProps) {
   const redirectToCatalog = (payload: CatalogSearchParams) => {
     const params = new URLSearchParams()
     if (payload.location) {
@@ -42,6 +44,16 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
     redirectToCatalog(payload)
   }
 
+  useEffect(() => {
+    if (!focusSection) return
+    const sectionId = focusSection === 'stories' ? 'stories' : 'how-it-works'
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById(sectionId)
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+    return () => window.clearTimeout(timer)
+  }, [focusSection])
+
   return (
     <div className="min-h-screen bg-dusty-mauve-50 text-dusty-mauve-900">
       <div className="relative isolate overflow-hidden">
@@ -54,8 +66,8 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
           <HeroSection onSearch={handleHeroSearch} />
           <AssuranceBar />
           <FeaturedListings />
-          <HighlightsSection />
-          <NeighborhoodStories />
+          <HighlightsSection onNavigate={onNavigate} />
+          <NeighborhoodStories onNavigate={onNavigate} />
           <TestimonialsSection />
         </main>
         <Footer />

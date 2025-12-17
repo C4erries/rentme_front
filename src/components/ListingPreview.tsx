@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useListingOverview } from '../hooks/useListingOverview'
+import { useListingReviews } from '../hooks/useListingReviews'
 import { createBooking } from '../lib/bookingApi'
 import { ApiError } from '../lib/api'
 import type { Listing } from '../types/listing'
+import type { Review } from '../types/review'
 
 interface ListingPreviewProps {
   listingId: string | null
@@ -29,6 +31,11 @@ export function ListingPreview({
   onClose,
 }: ListingPreviewProps) {
   const { data, loading, error } = useListingOverview(listingId)
+  const {
+    data: reviewsData,
+    loading: reviewsLoading,
+    error: reviewsError,
+  } = useListingReviews(listingId, 3)
   const [checkIn, setCheckIn] = useState(initialCheckIn ?? '')
   const [checkOut, setCheckOut] = useState(initialCheckOut ?? '')
   const [guests, setGuests] = useState(initialGuests && initialGuests > 0 ? initialGuests : 1)
@@ -110,6 +117,12 @@ export function ListingPreview({
     }
   }
 
+  const ratingValue =
+    typeof data?.rating === 'number'
+      ? data.rating
+      : typeof summary?.rating === 'number'
+        ? summary.rating
+        : null
   const amenities = (data?.amenities?.length ? data.amenities : summary?.features) ?? []
   const chips = [
     summary?.price,
@@ -173,6 +186,49 @@ export function ListingPreview({
                 ))}
               </div>
             )}
+
+            {ratingValue && ratingValue > 0 && (
+              <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-dusty-mauve-900">
+                <span className="inline-flex items-center gap-1 rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
+                  {ratingValue.toFixed(1)} ★
+                </span>
+                {reviewsData?.total ? (
+                  <span className="text-xs font-normal uppercase text-dry-sage-600">
+                    {reviewsData.total} отзыв(ов)
+                  </span>
+                ) : (
+                  <span className="text-xs font-normal uppercase text-dry-sage-600">рейтинг объявления</span>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase text-dry-sage-600">Отзывы гостей</p>
+              {reviewsLoading ? (
+                <div className="h-16 animate-pulse rounded-2xl bg-dusty-mauve-100/40" />
+              ) : reviewsError ? (
+                <p className="text-sm text-red-600">{reviewsError}</p>
+              ) : reviewsData?.items?.length ? (
+                <ul className="space-y-2">
+                  {reviewsData.items.map((review: Review) => (
+                    <li
+                      key={review.id}
+                      className="rounded-2xl border border-dusty-mauve-100 bg-white/80 p-3 text-sm text-dusty-mauve-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-dusty-mauve-900">{review.rating} ★</span>
+                        <span className="text-xs text-dusty-mauve-500">
+                          {new Date(review.created_at).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-dusty-mauve-700">{review.text || 'Без текста'}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-dusty-mauve-500">Пока нет отзывов — станьте первым гостем.</p>
+              )}
+            </div>
 
             <div className="space-y-2">
               <p className="text-xs uppercase text-dry-sage-600">сервисы и удобства</p>

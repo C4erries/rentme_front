@@ -1,3 +1,7 @@
+interface NeighborhoodStoriesProps {
+  onNavigate?: (path: string) => void
+}
+
 const spotlights = [
   {
     district: 'Хамовники',
@@ -22,7 +26,7 @@ const spotlights = [
   },
 ]
 
-export function NeighborhoodStories() {
+export function NeighborhoodStories({ onNavigate }: NeighborhoodStoriesProps) {
   return (
     <section id="stories" className="container space-y-6 py-10">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -58,7 +62,11 @@ export function NeighborhoodStories() {
                 </li>
               ))}
             </ul>
-            <button className="text-left text-sm font-semibold text-dusty-mauve-900 underline underline-offset-4">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/stories')}
+              className="text-left text-sm font-semibold text-dusty-mauve-900 underline underline-offset-4"
+            >
               Получить гид района
             </button>
           </article>
@@ -67,4 +75,3 @@ export function NeighborhoodStories() {
     </section>
   )
 }
-

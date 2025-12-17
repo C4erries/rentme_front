@@ -9,8 +9,8 @@ interface HeaderProps {
 
 const navLinks = [
   { label: 'Каталог', hint: 'Жильё для поездок и жизни', href: '/catalog' },
-  { label: 'Как это работает', hint: 'Понятные шаги бронирования', href: '#how-it-works' },
-  { label: 'Истории гостей', hint: 'Реальные маршруты и районы', href: '#stories' },
+  { label: 'Как это работает', hint: 'Понятные шаги бронирования', href: '/how-it-works' },
+  { label: 'Истории гостей', hint: 'Реальные маршруты и районы', href: '/stories' },
 ]
 
 export function Header({ onNavigate }: HeaderProps) {

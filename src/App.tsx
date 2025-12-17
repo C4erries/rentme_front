@@ -88,6 +88,14 @@ function App() {
     return renderProtected(<HostListingWizardPage route={route} onNavigate={navigate} />, { requireHost: true })
   }
 
+  if (pathname === '/how-it-works') {
+    return <LandingPage onNavigate={navigate} focusSection="how-it-works" />
+  }
+
+  if (pathname === '/stories') {
+    return <LandingPage onNavigate={navigate} focusSection="stories" />
+  }
+
   return <LandingPage onNavigate={navigate} />
 
   function renderProtected(element: ReactElement, options: { requireHost?: boolean } = {}) {

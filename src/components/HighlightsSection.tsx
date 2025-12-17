@@ -1,3 +1,7 @@
+interface HighlightsSectionProps {
+  onNavigate?: (path: string) => void
+}
+
 const highlights = [
   {
     title: 'Каталог объявлений',
@@ -19,7 +23,7 @@ const highlights = [
   },
 ]
 
-export function HighlightsSection() {
+export function HighlightsSection({ onNavigate }: HighlightsSectionProps) {
   return (
     <section className="container space-y-6 py-12">
       <div className="space-y-2 text-center">
@@ -37,7 +41,11 @@ export function HighlightsSection() {
           >
             <h3 className="text-lg font-semibold">{item.title}</h3>
             <p className="mt-3 text-sm text-dusty-mauve-600">{item.copy}</p>
-            <button className="mt-6 text-sm font-semibold text-dry-sage-600 underline underline-offset-4">
+            <button
+              type="button"
+              onClick={() => onNavigate?.('/how-it-works')}
+              className="mt-6 text-sm font-semibold text-dry-sage-600 underline underline-offset-4"
+            >
               {item.link}
             </button>
           </article>

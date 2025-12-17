@@ -119,6 +119,7 @@ export interface ListingOverview {
     id: string
   }
   state: string
+  rating?: number
   calendar: ListingCalendar
   availability_window: AvailabilityWindow
 }

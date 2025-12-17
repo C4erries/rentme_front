@@ -22,6 +22,8 @@ export interface GuestBookingSummary {
   status: string
   total: MoneyDTO
   created_at: string
+  review_submitted?: boolean
+  can_review?: boolean
 }
 
 export interface GuestBookingCollection {
