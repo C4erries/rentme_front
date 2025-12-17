@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { withViewTransition } from '../lib/viewTransitions'
@@ -10,9 +10,9 @@ interface HeaderProps {
 }
 
 const navLinks = [
-  { label: 'Каталог', hint: 'Жильё для поездок и жизни', href: '/catalog' },
-  { label: 'Как это работает', hint: 'Понятные шаги бронирования', href: '/how-it-works' },
-  { label: 'Истории гостей', hint: 'Реальные маршруты и районы', href: '/stories' },
+  { label: 'Каталог', hint: 'Подберите варианты по датам и району', href: '/catalog' },
+  { label: 'Как это работает', hint: 'Пошаговый разбор для гостей и хостов', href: '/how-it-works' },
+  { label: 'Истории гостей', hint: 'Отзывы и впечатления арендаторов', href: '/stories' },
 ]
 
 export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
@@ -62,8 +62,8 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
           >
             <span className="text-xl font-semibold uppercase tracking-tight text-dusty-mauve-900">Rentme</span>
             <div className="hidden items-center gap-2 rounded-full border border-white/60 bg-white/70 px-4 py-1 text-xs font-semibold text-dry-sage-700 shadow-soft sm:flex">
-              <span>Маркетплейс</span>
-              <span className="text-dusty-mauve-500">для долгой и короткой аренды</span>
+              <span>Аренда жилья</span>
+              <span className="text-dusty-mauve-500">Для кратко- и долгосрочных поездок</span>
             </div>
           </a>
 
@@ -92,7 +92,7 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                 onClick={() => navigate('/catalog')}
                 className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-2 text-dusty-mauve-900 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
               >
-                Найти жильё
+                Каталог
               </button>
               <button
                 type="button"
@@ -118,7 +118,7 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                         className="flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
                         onClick={() => navigate('/me/chats')}
                       >
-                        Сообщения
+                        Мои чаты
                         {unreadChats && <span className="h-2 w-2 rounded-full bg-red-500" />}
                       </button>
                       <button
@@ -126,7 +126,7 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                         className="flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
                         onClick={() => navigate('/me/bookings')}
                       >
-                        Мои поездки
+                        Мои брони
                       </button>
                       {isAdmin && (
                         <button
@@ -143,7 +143,7 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                           className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
                           onClick={() => navigate('/host/listings')}
                         >
-                          Кабинет хоста
+                          Мои объявления
                         </button>
                       )}
                       <button
@@ -207,3 +207,4 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
     </header>
   )
 }
+

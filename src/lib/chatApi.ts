@@ -44,3 +44,7 @@ export function markChatRead(conversationId: string, lastReadMessageId?: string)
 export function createDirectConversation(userId: string) {
   return apiPost<Conversation>('/chats', { user_id: userId })
 }
+
+export function createListingConversation(listingId: string) {
+  return apiPost<Conversation>(`/listings/${listingId}/chat`, {})
+}

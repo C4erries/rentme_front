@@ -1,4 +1,4 @@
-import { Header } from '../../components/Header'
+﻿import { Header } from '../../components/Header'
 import { withViewTransition } from '../../lib/viewTransitions'
 import type { ConversationList } from '../../types/chat'
 
@@ -29,10 +29,10 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
       <div className="container py-12">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Внутренний мессенджер</p>
-            <h1 className="text-3xl font-semibold text-dusty-mauve-900">Сообщения</h1>
+            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Мессенджер</p>
+            <h1 className="text-3xl font-semibold text-dusty-mauve-900">Мои чаты</h1>
             {chatState.hasUnread && (
-              <p className="mt-1 text-sm text-red-600">Есть новые сообщения, загляните в диалоги</p>
+              <p className="mt-1 text-sm text-red-600">Есть непрочитанные сообщения — загляните в диалоги</p>
             )}
           </div>
           <div className="flex flex-wrap gap-3">
@@ -48,14 +48,14 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
               onClick={() => withViewTransition(() => onNavigate('/catalog'))}
               className="rounded-full bg-dusty-mauve-900 px-5 py-2 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
             >
-              Найти новое жильё
+              Найти жильё
             </button>
           </div>
         </div>
 
         {chatState.loading && (
           <div className="mt-8 rounded-3xl border border-white/60 bg-white/80 p-4 text-sm text-dusty-mauve-600 shadow-soft">
-            Загружаем ваши чаты...
+            Загружаем чаты...
           </div>
         )}
         {chatState.error && (
@@ -68,7 +68,7 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
           <div className="mt-10 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-10 text-center shadow-soft">
             <p className="text-lg font-semibold text-dusty-mauve-900">Пока нет переписок</p>
             <p className="mt-2 text-sm text-dusty-mauve-500">
-              Напишите хозяину понравившегося объявления из каталога или дождитесь новых откликов.
+              Напишите арендодателю из каталога или ответьте на новые заявки, чтобы начать общение.
             </p>
             <button
               type="button"
@@ -89,18 +89,18 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col">
                   <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                    {conversation.listing_id ? `Объявление ${conversation.listing_id}` : 'Прямой диалог'}
+                    {conversation.listing_id ? `Объявление ${conversation.listing_id}` : 'Диалог без объявления'}
                   </p>
                   <h2 className="text-xl font-semibold text-dusty-mauve-900">Чат #{conversation.id.slice(0, 8)}</h2>
                   <p className="text-sm text-dusty-mauve-500">
-                    {conversation.participants.length} участников · {formatActivity(conversation)}
+                    {conversation.participants.length} участника · {formatActivity(conversation)}
                   </p>
                 </div>
                 {conversation.has_unread && <span className="h-3 w-3 rounded-full bg-red-500" />}
               </div>
               <div className="flex items-center justify-between text-sm text-dusty-mauve-600">
                 <span className="rounded-full bg-dry-sage-50 px-3 py-1 text-dry-sage-700">
-                  Последний отправитель: {conversation.last_message_sender_id || '—'}
+                  Последнее сообщение: {conversation.last_message_sender_id || '—'}
                 </span>
                 <button
                   type="button"
@@ -123,6 +123,7 @@ function formatActivity(conversation: ConversationList['items'][number]) {
   try {
     return dateFormatter.format(new Date(timestamp))
   } catch {
-    return 'неизвестно'
+    return 'н/д'
   }
 }
+

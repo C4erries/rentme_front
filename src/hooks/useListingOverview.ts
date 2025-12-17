@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { apiGet, hasApiBaseUrl } from '../lib/api'
 import type { ListingOverview } from '../types/listing'
 
@@ -17,7 +17,7 @@ export function useListingOverview(listingId: string | null) {
     if (!hasApiBaseUrl()) {
       setData(null)
       setLoading(false)
-      setError('API не настроен. Подключите VITE_API_BASE_URL, чтобы видеть подробности жилья.')
+      setError('API не настроено. Укажите VITE_API_BASE_URL, чтобы загрузить данные объявления.')
       return
     }
 
@@ -44,7 +44,7 @@ export function useListingOverview(listingId: string | null) {
         }
         console.warn('Failed to load listing overview', err)
         setData(null)
-        setError('Не удалось загрузить подробности. Попробуйте снова позже.')
+        setError('Не удалось загрузить данные объявления. Попробуйте позже.')
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false)
@@ -68,3 +68,4 @@ function addDays(base: Date, days: number) {
 function formatAsISO(date: Date) {
   return date.toISOString().slice(0, 10)
 }
+

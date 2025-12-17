@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useListingOverview } from '../hooks/useListingOverview'
 import { useListingReviews } from '../hooks/useListingReviews'
 import { createBooking } from '../lib/bookingApi'
 import { ApiError } from '../lib/api'
+import { createListingConversation } from '../lib/chatApi'
 import type { Listing } from '../types/listing'
 import type { Review } from '../types/review'
 
@@ -42,6 +43,8 @@ export function ListingPreview({
   const [submitting, setSubmitting] = useState(false)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
+  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => {
     setCheckIn(initialCheckIn ?? '')
@@ -49,6 +52,7 @@ export function ListingPreview({
     setGuests(initialGuests && initialGuests > 0 ? initialGuests : 1)
     setBookingError(null)
     setBookingSuccess(null)
+    setChatError(null)
   }, [initialCheckIn, initialCheckOut, initialGuests, listingId])
 
   useEffect(() => {
@@ -73,11 +77,11 @@ export function ListingPreview({
     const checkInDate = new Date(checkIn)
     const checkOutDate = new Date(checkOut)
     if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
-      setBookingError('Укажите корректные даты')
+      setBookingError('Неверный формат дат')
       return
     }
     if (checkOutDate <= checkInDate) {
-      setBookingError('Дата выезда должна быть позже даты заезда')
+      setBookingError('Дата выезда должна быть позже заезда')
       return
     }
     setSubmitting(true)
@@ -91,8 +95,7 @@ export function ListingPreview({
         check_out: checkOutDate.toISOString(),
         guests: guestsCount,
       })
-      const successText = 'Бронь создана'
-      setBookingSuccess(successText)
+      setBookingSuccess('Бронирование создано')
       if (onNavigate) {
         onNavigate('/me/bookings')
       }
@@ -101,8 +104,8 @@ export function ListingPreview({
         if (err.status === 401 || err.status === 403) {
           const currentPath =
             typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/catalog'
-          const redirectTarget = `/auth/login?redirect=${encodeURIComponent(currentPath)}`
-          setBookingError('Нужно войти, чтобы оформить бронь')
+          const redirectTarget = `/login?redirect=${encodeURIComponent(currentPath)}`
+          setBookingError('Нужна авторизация, чтобы оформить бронь')
           if (onNavigate) {
             onNavigate(redirectTarget)
           }
@@ -111,9 +114,34 @@ export function ListingPreview({
         setBookingError(err.message)
         return
       }
-      setBookingError('Не удалось создать бронь. Попробуйте еще раз.')
+      setBookingError('Не удалось создать бронь. Попробуйте позже.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleContactHost = async () => {
+    setChatError(null)
+    setChatLoading(true)
+    try {
+      const response = await createListingConversation(listingId)
+      const conversationId = response.data.id
+      if (onNavigate) {
+        onNavigate(`/me/chats/${conversationId}`)
+      }
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/catalog'
+        const redirectTarget = `/login?redirect=${encodeURIComponent(currentPath)}`
+        setChatError('Войдите, чтобы написать арендодателю')
+        if (onNavigate) {
+          onNavigate(redirectTarget)
+        }
+        return
+      }
+      setChatError((err as Error).message)
+    } finally {
+      setChatLoading(false)
     }
   }
 
@@ -127,20 +155,18 @@ export function ListingPreview({
   const chips = [
     summary?.price,
     summary?.area,
-    data?.guests_limit ? `${data.guests_limit} гостей` : null,
-    data?.min_nights && data?.max_nights
-      ? `${data.min_nights}–${data.max_nights} ночей`
-      : null,
+    data?.guests_limit ? `${data.guests_limit} гостя` : null,
+    data?.min_nights && data?.max_nights ? `${data.min_nights}–${data.max_nights} ночей` : null,
   ].filter(Boolean) as string[]
 
-  const title = data?.title ?? summary?.title ?? 'Подборка Rentme'
+  const title = data?.title ?? summary?.title ?? 'Объявление Rentme'
   const location =
     (data?.address?.line1
       ? [data.address.line1, data.address.city].filter(Boolean).join(' · ')
-      : summary?.location) ?? 'Локация уточняется'
+      : summary?.location) ?? 'Адрес уточняется'
   const description =
     data?.description ??
-    'Показываем историю объявления, календарь и удобства. Можно запросить просмотр и оформить бронь прямо из Rentme.'
+    'Описание появится позже. Мы проверяем данные и готовим объявление для гостей.'
 
   const availabilityBlocks = data?.calendar?.blocks ?? []
   const highlightedBlocks = availabilityBlocks.slice(0, 2)
@@ -170,7 +196,7 @@ export function ListingPreview({
         <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-xs uppercase text-dry-sage-600">подробности жилья</p>
+              <p className="text-xs uppercase text-dry-sage-600">Краткое описание</p>
               <h3 className="text-2xl font-semibold text-dusty-mauve-900">{title}</h3>
               <p className="text-sm text-dusty-mauve-500">{location}</p>
             </div>
@@ -190,14 +216,12 @@ export function ListingPreview({
             {ratingValue && ratingValue > 0 && (
               <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-dusty-mauve-900">
                 <span className="inline-flex items-center gap-1 rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
-                  {ratingValue.toFixed(1)} ★
+                  {ratingValue.toFixed(1)} ?
                 </span>
                 {reviewsData?.total ? (
-                  <span className="text-xs font-normal uppercase text-dry-sage-600">
-                    {reviewsData.total} отзыв(ов)
-                  </span>
+                  <span className="text-xs font-normal uppercase text-dry-sage-600">{reviewsData.total} отзыв(ов)</span>
                 ) : (
-                  <span className="text-xs font-normal uppercase text-dry-sage-600">рейтинг объявления</span>
+                  <span className="text-xs font-normal uppercase text-dry-sage-600">Ещё нет отзывов</span>
                 )}
               </div>
             )}
@@ -216,7 +240,7 @@ export function ListingPreview({
                       className="rounded-2xl border border-dusty-mauve-100 bg-white/80 p-3 text-sm text-dusty-mauve-800"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-dusty-mauve-900">{review.rating} ★</span>
+                        <span className="font-semibold text-dusty-mauve-900">{review.rating} ?</span>
                         <span className="text-xs text-dusty-mauve-500">
                           {new Date(review.created_at).toLocaleDateString('ru-RU')}
                         </span>
@@ -226,12 +250,12 @@ export function ListingPreview({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-dusty-mauve-500">Пока нет отзывов — станьте первым гостем.</p>
+                <p className="text-sm text-dusty-mauve-500">Пока нет отзывов — вы можете стать первым гостем.</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs uppercase text-dry-sage-600">сервисы и удобства</p>
+              <p className="text-xs uppercase text-dry-sage-600">Удобства</p>
               {loading ? (
                 <div className="h-16 animate-pulse rounded-2xl bg-dusty-mauve-100/40" />
               ) : (
@@ -245,9 +269,7 @@ export function ListingPreview({
                     </span>
                   ))}
                   {amenities.length === 0 && (
-                    <span className="text-sm text-dusty-mauve-500">
-                      Ждём подтверждения списка удобств от хозяина.
-                    </span>
+                    <span className="text-sm text-dusty-mauve-500">Удобства будут указаны позже.</span>
                   )}
                 </div>
               )}
@@ -255,7 +277,7 @@ export function ListingPreview({
 
             <div className="space-y-3 rounded-2xl border border-dusty-mauve-100 bg-white/80 p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs uppercase text-dry-sage-600">доступность</p>
+                <p className="text-xs uppercase text-dry-sage-600">Доступность</p>
                 {data?.availability_window && (
                   <p className="text-xs text-dusty-mauve-500">
                     {formatRange(data.availability_window.from, data.availability_window.to)}
@@ -277,20 +299,18 @@ export function ListingPreview({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-dusty-mauve-600">
-                  Свободно в указанный период - можно бронировать после просмотра.
-                </p>
+                <p className="text-sm text-dusty-mauve-600">Нет блокировок календаря — даты свободны.</p>
               )}
             </div>
 
             <div className="space-y-3 rounded-2xl border border-dusty-mauve-100 bg-white/80 p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs uppercase text-dry-sage-600">бронирование</p>
+                <p className="text-xs uppercase text-dry-sage-600">Бронирование</p>
                 {bookingSuccess && <span className="text-xs font-semibold text-dry-sage-700">{bookingSuccess}</span>}
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
-                  <span>заезд</span>
+                  <span>Заезд</span>
                   <input
                     type="date"
                     value={checkIn}
@@ -299,7 +319,7 @@ export function ListingPreview({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
-                  <span>выезд</span>
+                  <span>Выезд</span>
                   <input
                     type="date"
                     value={checkOut}
@@ -308,7 +328,7 @@ export function ListingPreview({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
-                  <span>гостей</span>
+                  <span>Гостей</span>
                   <input
                     type="number"
                     min={1}
@@ -326,10 +346,10 @@ export function ListingPreview({
                   disabled={submitting}
                   className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-50"
                 >
-                  {submitting ? 'Отправляем бронь...' : 'Забронировать'}
+                  {submitting ? 'Отправляем заявку...' : 'Забронировать'}
                 </button>
                 <p className="text-xs text-dusty-mauve-500">
-                  Используем выбранные даты и гостей, можно поменять перед отправкой.
+                  Укажем точную цену после проверки дат и доступности.
                 </p>
               </div>
             </div>
@@ -341,11 +361,19 @@ export function ListingPreview({
             )}
 
             <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleContactHost}
+                disabled={chatLoading}
+                className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-60"
+              >
+                {chatLoading ? 'Открываем чат...' : 'Написать арендодателю'}
+              </button>
               <a
                 href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${listingId}`}
-                className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+                className="inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-3 text-sm font-semibold text-dusty-mauve-700 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
               >
-                Запросить просмотр
+                Написать на почту
               </a>
               <a
                 href="https://t.me/rentme"
@@ -356,19 +384,16 @@ export function ListingPreview({
                 Написать в Telegram
               </a>
             </div>
+            {chatError && <p className="text-sm text-red-600">{chatError}</p>}
           </div>
 
           {summary?.thumbnail && (
             <div className="space-y-3">
               <div className="overflow-hidden rounded-3xl">
-                <img
-                  src={summary.thumbnail}
-                  alt={summary.title}
-                  className="h-60 w-full object-cover sm:h-full"
-                />
+                <img src={summary.thumbnail} alt={summary.title} className="h-60 w-full object-cover sm:h-full" />
               </div>
               <p className="text-xs uppercase text-dusty-mauve-500">
-                Код подбора · <span className="font-mono">{summary.id}</span>
+                ID объявления · <span className="font-mono">{summary.id}</span>
               </p>
             </div>
           )}

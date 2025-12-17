@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react'
 import { CatalogPage } from './pages/CatalogPage'
 import { LandingPage } from './pages/LandingPage'
 import { HostListingsPage } from './pages/host/HostListingsPage'
@@ -14,16 +14,19 @@ import { useChatList } from './hooks/useChatList'
 import { withViewTransition } from './lib/viewTransitions'
 import { useAuth } from './context/AuthContext'
 import { ChatBadgeProvider } from './context/ChatBadgeContext'
+
 interface AppRoute {
   pathname: string
   search: string
 }
+
 function getCurrentRoute(): AppRoute {
   if (typeof window === 'undefined') {
     return { pathname: '/', search: '' }
   }
   return { pathname: window.location.pathname, search: window.location.search }
 }
+
 function normalizePathname(pathname: string): string {
   if (!pathname || pathname === '/') {
     return '/'
@@ -31,22 +34,26 @@ function normalizePathname(pathname: string): string {
   const trimmed = pathname.replace(/\/+$/, '')
   return trimmed.length === 0 ? '/' : trimmed
 }
+
 function isHostWizardPath(pathname: string): boolean {
   if (pathname === '/host/listings/new') {
     return true
   }
   return /^\/host\/listings\/[^/]+\/edit$/.test(pathname)
 }
+
 function App() {
   const [route, setRoute] = useState<AppRoute>(() => getCurrentRoute())
   const { isAuthenticated, user, isLoading } = useAuth()
   const chatState = useChatList({ enabled: isAuthenticated, intervalMs: 8000 })
   const isAdmin = Boolean(user?.roles?.includes('admin'))
+
   useEffect(() => {
     const handlePopState = () => setRoute(getCurrentRoute())
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
   const navigate = useCallback((path: string, options?: { replace?: boolean }) => {
     if (typeof window === 'undefined') {
       return
@@ -57,26 +64,37 @@ function App() {
       setRoute(getCurrentRoute())
     })
   }, [])
+
   const pathname = normalizePathname(route.pathname)
   const redirectTarget = useMemo(() => new URLSearchParams(route.search).get('redirect') ?? undefined, [route.search])
   const wrapWithChatBadge = (element: ReactElement) => (
     <ChatBadgeProvider value={chatState.hasUnread}>{element}</ChatBadgeProvider>
   )
+
   if (isLoading) {
-    return wrapWithChatBadge(<CenteredMessage message="ГђВ—ГђВ°ГђВіГ‘ВЂГ‘ВѓГђВ¶ГђВ°ГђВµГђВј ГђВІГђВ°Г‘В€ ГђВїГ‘ВЂГђВѕГ‘В„ГђВёГђВ»Г‘ВЊ..." />)
+    return wrapWithChatBadge(<CenteredMessage message="Загружаем профиль..." />)
   }
+
   if (pathname === '/login') {
     return wrapWithChatBadge(<LoginPage onNavigate={navigate} redirectTo={redirectTarget} />)
   }
   if (pathname === '/register') {
     return wrapWithChatBadge(<RegisterPage onNavigate={navigate} />)
   }
+
   const chatMatch = pathname.match(/^\/me\/chats\/([^/]+)$/)
   if (chatMatch) {
+    const activeConversation = chatState.data?.items.find((item) => item.id === chatMatch[1]) || null
     return renderProtected(
-      <ChatThreadPage conversationId={chatMatch[1]} onNavigate={navigate} refreshChats={chatState.refresh} />,
+      <ChatThreadPage
+        conversationId={chatMatch[1]}
+        conversation={activeConversation}
+        onNavigate={navigate}
+        refreshChats={chatState.refresh}
+      />,
     )
   }
+
   if (pathname === '/me/chats') {
     return renderProtected(
       <ChatListPage
@@ -91,6 +109,7 @@ function App() {
       />,
     )
   }
+
   if (pathname.startsWith('/me')) {
     return renderProtected(<GuestBookingsPage onNavigate={navigate} />)
   }
@@ -116,17 +135,21 @@ function App() {
     return wrapWithChatBadge(<LandingPage onNavigate={navigate} focusSection="stories" />)
   }
   return wrapWithChatBadge(<LandingPage onNavigate={navigate} />)
-  function renderProtected(element: ReactElement, options: { requireHost?: boolean; requireAdmin?: boolean } = {}) {
+
+  function renderProtected(
+    element: ReactElement,
+    options: { requireHost?: boolean; requireAdmin?: boolean } = {},
+  ) {
     if (!isAuthenticated) {
       const target = `/login?redirect=${encodeURIComponent(pathname + route.search)}`
       return wrapWithChatBadge(
-        <RedirectingScreen message="Перенаправляем на вход..." target={target} onNavigate={navigate} />,
+        <RedirectingScreen message="Требуется авторизация..." target={target} onNavigate={navigate} />,
       )
     }
     if (options.requireAdmin && !isAdmin) {
       return wrapWithChatBadge(
         <CenteredMessage
-          message="Доступ к этой странице есть только у администраторов."
+          message="Доступно только администраторам."
           actionLabel="На главную"
           onAction={() => navigate('/')}
         />,
@@ -135,8 +158,8 @@ function App() {
     if (options.requireHost && !user?.roles?.includes('host')) {
       return wrapWithChatBadge(
         <CenteredMessage
-          message="Для доступа к кабинетам хоста нужна роль host. Оставьте заявку в поддержке или добавьте роль в профиле."
-          actionLabel="Вернуться на главную"
+          message="Нужен доступ host. Подайте заявку или переключитесь на аккаунт хоста."
+          actionLabel="На главную"
           onAction={() => navigate('/')}
         />,
       )
@@ -144,7 +167,9 @@ function App() {
     return wrapWithChatBadge(element)
   }
 }
+
 export default App
+
 function RedirectingScreen({
   target,
   message,
@@ -159,6 +184,7 @@ function RedirectingScreen({
   }, [target, onNavigate])
   return <CenteredMessage message={message} />
 }
+
 function CenteredMessage({
   message,
   actionLabel,
@@ -183,3 +209,4 @@ function CenteredMessage({
     </div>
   )
 }
+

@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Header } from '../../components/Header'
 import { useChatMessages } from '../../hooks/useChatMessages'
 import { markChatRead, sendChatMessage } from '../../lib/chatApi'
 import { withViewTransition } from '../../lib/viewTransitions'
 import { useAuth } from '../../context/AuthContext'
-import type { ChatMessage } from '../../types/chat'
+import { useListingOverview } from '../../hooks/useListingOverview'
+import type { ChatMessage, Conversation } from '../../types/chat'
 
 interface ChatThreadPageProps {
   conversationId: string
   onNavigate: (path: string, options?: { replace?: boolean }) => void
   refreshChats: () => void
+  conversation?: Conversation | null
 }
 
 const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
@@ -19,7 +21,7 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   month: 'short',
 })
 
-export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: ChatThreadPageProps) {
+export function ChatThreadPage({ conversationId, onNavigate, refreshChats, conversation }: ChatThreadPageProps) {
   const { user } = useAuth()
   const { data, loading, error, refresh, latestMessageId } = useChatMessages(conversationId, { intervalMs: 8000 })
   const [text, setText] = useState('')
@@ -27,10 +29,34 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
   const [sending, setSending] = useState(false)
   const lastMarkedRef = useRef<string>('')
 
+  const listingId = conversation?.listing_id ?? ''
+  const { data: listingOverview } = useListingOverview(listingId || null)
+
   const messages = useMemo<ChatMessage[]>(() => {
     const items = data?.items ?? []
     return [...items].reverse()
   }, [data])
+
+  const counterpartId = useMemo(() => {
+    const participants = conversation?.participants ?? []
+    const other = participants.find((id) => id !== user?.id)
+    return other || participants[0] || ''
+  }, [conversation?.participants, user?.id])
+
+  const peerRole = useMemo(() => {
+    if (listingOverview?.host?.id) {
+      if (listingOverview.host.id === counterpartId) {
+        return 'арендодатель'
+      }
+      if (listingOverview.host.id === user?.id) {
+        return 'гость'
+      }
+    }
+    if (user?.roles?.includes('admin')) {
+      return 'admin'
+    }
+    return 'участник'
+  }, [listingOverview?.host?.id, counterpartId, user?.id, user?.roles])
 
   useEffect(() => {
     if (!latestMessageId || latestMessageId === lastMarkedRef.current) {
@@ -69,6 +95,8 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
     }
   }
 
+  const listingTitle = listingOverview?.title || (listingId ? `Объявление ${listingId}` : '')
+
   return (
     <div className="min-h-screen bg-dusty-mauve-50">
       <Header onNavigate={onNavigate} />
@@ -77,6 +105,10 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
           <div>
             <p className="text-xs uppercase tracking-widest text-dry-sage-400">Диалог</p>
             <h1 className="text-3xl font-semibold text-dusty-mauve-900">Чат #{conversationId.slice(0, 8)}</h1>
+            {listingTitle && <p className="text-sm text-dusty-mauve-600">{listingTitle}</p>}
+            {counterpartId && (
+              <p className="text-sm text-dry-sage-600">Собеседник: {counterpartId} ({peerRole})</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -98,7 +130,7 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
 
         {loading && (
           <div className="mt-6 rounded-3xl border border-white/60 bg-white/80 p-4 text-sm text-dusty-mauve-600 shadow-soft">
-            Загружаем сообщения...
+            Загружаем переписку...
           </div>
         )}
         {error && (
@@ -110,7 +142,7 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
         <div className="mt-6 flex flex-col gap-4">
           <div className="rounded-3xl border border-white/60 bg-white/90 p-5 shadow-soft">
             {messages.length === 0 && !loading ? (
-              <p className="text-sm text-dusty-mauve-500">Сообщений пока нет. Напишите первым.</p>
+              <p className="text-sm text-dusty-mauve-500">Сообщений пока нет. Напишите первое.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {messages.map((message) => {
@@ -123,7 +155,7 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
                         }`}
                       >
                         <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-dusty-mauve-300">
-                          <span>{isMine ? 'Вы' : message.sender_id}</span>
+                          <span>{isMine ? 'Я' : message.sender_id}</span>
                           <span>{formatTime(message.created_at)}</span>
                         </div>
                         <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{message.text}</p>
@@ -141,13 +173,13 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats }: Cha
               value={text}
               onChange={(event) => setText(event.target.value)}
               rows={3}
-              placeholder="Напишите коротко и по делу..."
+              placeholder="Напишите коротко, чем можем помочь..."
               className="w-full rounded-2xl border border-dusty-mauve-200 px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-500"
             />
             {sendError && <p className="text-xs text-red-600">{sendError}</p>}
             <div className="flex flex-wrap justify-between gap-3">
               <p className="text-xs text-dusty-mauve-500">
-                Отправляя сообщение, вы соглашаетесь с правилами общения в Rentme.
+                Отправляя сообщения, вы принимаете базовые правила чата и общения в Rentme.
               </p>
               <button
                 type="submit"
@@ -171,3 +203,4 @@ function formatTime(timestamp: string) {
     return '—'
   }
 }
+
