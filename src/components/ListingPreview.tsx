@@ -1,10 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useListingOverview } from '../hooks/useListingOverview'
+import { createBooking } from '../lib/bookingApi'
+import { ApiError } from '../lib/api'
 import type { Listing } from '../types/listing'
 
 interface ListingPreviewProps {
   listingId: string | null
   summary: Listing | null
+  initialCheckIn?: string
+  initialCheckOut?: string
+  initialGuests?: number
+  onNavigate?: (path: string, options?: { replace?: boolean }) => void
   onClose: () => void
 }
 
@@ -13,8 +19,30 @@ const availabilityFormatter = new Intl.DateTimeFormat('ru-RU', {
   month: 'long',
 })
 
-export function ListingPreview({ listingId, summary, onClose }: ListingPreviewProps) {
+export function ListingPreview({
+  listingId,
+  summary,
+  initialCheckIn,
+  initialCheckOut,
+  initialGuests,
+  onNavigate,
+  onClose,
+}: ListingPreviewProps) {
   const { data, loading, error } = useListingOverview(listingId)
+  const [checkIn, setCheckIn] = useState(initialCheckIn ?? '')
+  const [checkOut, setCheckOut] = useState(initialCheckOut ?? '')
+  const [guests, setGuests] = useState(initialGuests && initialGuests > 0 ? initialGuests : 1)
+  const [submitting, setSubmitting] = useState(false)
+  const [bookingError, setBookingError] = useState<string | null>(null)
+  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    setCheckIn(initialCheckIn ?? '')
+    setCheckOut(initialCheckOut ?? '')
+    setGuests(initialGuests && initialGuests > 0 ? initialGuests : 1)
+    setBookingError(null)
+    setBookingSuccess(null)
+  }, [initialCheckIn, initialCheckOut, initialGuests, listingId])
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -28,6 +56,58 @@ export function ListingPreview({ listingId, summary, onClose }: ListingPreviewPr
 
   if (!listingId) {
     return null
+  }
+
+  const handleBooking = async () => {
+    if (!checkIn || !checkOut) {
+      setBookingError('Укажите даты заезда и выезда')
+      return
+    }
+    const checkInDate = new Date(checkIn)
+    const checkOutDate = new Date(checkOut)
+    if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
+      setBookingError('Укажите корректные даты')
+      return
+    }
+    if (checkOutDate <= checkInDate) {
+      setBookingError('Дата выезда должна быть позже даты заезда')
+      return
+    }
+    setSubmitting(true)
+    setBookingError(null)
+    setBookingSuccess(null)
+    try {
+      const guestsCount = guests > 0 ? guests : 1
+      await createBooking({
+        listing_id: listingId,
+        check_in: checkInDate.toISOString(),
+        check_out: checkOutDate.toISOString(),
+        guests: guestsCount,
+      })
+      const successText = 'Бронь создана'
+      setBookingSuccess(successText)
+      if (onNavigate) {
+        onNavigate('/me/bookings')
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 401 || err.status === 403) {
+          const currentPath =
+            typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/catalog'
+          const redirectTarget = `/auth/login?redirect=${encodeURIComponent(currentPath)}`
+          setBookingError('Нужно войти, чтобы оформить бронь')
+          if (onNavigate) {
+            onNavigate(redirectTarget)
+          }
+          return
+        }
+        setBookingError(err.message)
+        return
+      }
+      setBookingError('Не удалось создать бронь. Попробуйте еще раз.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const amenities = (data?.amenities?.length ? data.amenities : summary?.features) ?? []
@@ -142,9 +222,60 @@ export function ListingPreview({ listingId, summary, onClose }: ListingPreviewPr
                 </ul>
               ) : (
                 <p className="text-sm text-dusty-mauve-600">
-                  Свободно в указанный период — можно бронировать после просмотра.
+                  Свободно в указанный период - можно бронировать после просмотра.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-dusty-mauve-100 bg-white/80 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs uppercase text-dry-sage-600">бронирование</p>
+                {bookingSuccess && <span className="text-xs font-semibold text-dry-sage-700">{bookingSuccess}</span>}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
+                  <span>заезд</span>
+                  <input
+                    type="date"
+                    value={checkIn}
+                    onChange={(event) => setCheckIn(event.target.value)}
+                    className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
+                  <span>выезд</span>
+                  <input
+                    type="date"
+                    value={checkOut}
+                    onChange={(event) => setCheckOut(event.target.value)}
+                    className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
+                  <span>гостей</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={guests}
+                    onChange={(event) => setGuests(Math.max(1, Number(event.target.value) || 1))}
+                    className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+                  />
+                </label>
+              </div>
+              {bookingError && <p className="text-sm text-red-600">{bookingError}</p>}
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleBooking}
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-50"
+                >
+                  {submitting ? 'Отправляем бронь...' : 'Забронировать'}
+                </button>
+                <p className="text-xs text-dusty-mauve-500">
+                  Используем выбранные даты и гостей, можно поменять перед отправкой.
+                </p>
+              </div>
             </div>
 
             {error && (

@@ -192,6 +192,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
 
   const meta = data?.meta
   const totalLabel = meta ? `${meta.total} предложений` : 'Каталог'
+  const initialGuests = formState.guests ? Number(formState.guests) || undefined : undefined
 
   return (
     <div className="min-h-screen bg-dusty-mauve-50 text-dusty-mauve-900">
@@ -479,6 +480,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
       <ListingPreview
         listingId={selectedListingId}
         summary={selectedSummary}
+        initialCheckIn={formState.checkIn}
+        initialCheckOut={formState.checkOut}
+        initialGuests={initialGuests}
+        onNavigate={onNavigate}
         onClose={() => withViewTransition(() => setSelectedListingId(null))}
       />
     </div>

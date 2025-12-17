@@ -16,6 +16,8 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Отменено',
   CHECKED_IN: 'Гость заехал',
   CHECKED_OUT: 'Завершено',
+  EXPIRED: 'Истекло',
+  NO_SHOW: 'Не приехали',
 }
 
 interface GuestBookingsPageProps {
