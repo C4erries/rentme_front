@@ -125,9 +125,7 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
                   <p className="text-sm text-dusty-mauve-500">
                     {item.bedrooms} комн. · {item.area_sq_m} м² · Этаж {item.floor} из {item.floors_total}
                   </p>
-                  <p className="text-sm font-semibold text-dusty-mauve-900">
-                    {priceFormatter.format(Math.round(item.nightly_rate_cents / 100))} / ночь
-                  </p>
+                  <p className="text-sm font-semibold text-dusty-mauve-900">{formatRate(item)}</p>
                   <p className="text-xs uppercase text-dry-sage-500">До {item.guests_limit} гостей</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs uppercase text-dry-sage-600">
@@ -169,4 +167,17 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
       </div>
     </div>
   )
+}
+
+function normalizePriceUnit(unit?: string, rentalTerm?: string) {
+  if (unit === 'month' || unit === 'night') {
+    return unit
+  }
+  return rentalTerm === 'long_term' ? 'month' : 'night'
+}
+
+function formatRate(item: HostListingSummary) {
+  const unit = normalizePriceUnit(item.price_unit, item.rental_term)
+  const value = priceFormatter.format(Math.round(item.nightly_rate_cents / 100))
+  return unit === 'month' ? `${value} / месяц` : `${value} / ночь`
 }

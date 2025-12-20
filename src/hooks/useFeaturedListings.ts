@@ -127,12 +127,13 @@ export function mapListing(card: ListingRecord): Listing {
 
   const highlights = card.highlights?.length ? card.highlights : card.amenities?.slice(0, 3) ?? []
   const availableFrom = formatAvailableDate(card.available_from)
+  const unit = normalizePriceUnit(card.price_unit, card.rental_term)
 
   return {
     id: card.id,
     title: card.title,
     location: locationParts.join(' · ') || card.city || 'Локация уточняется',
-    price: formatNightlyRate(card.nightly_rate_cents),
+    price: formatRate(card.rate_cents ?? card.nightly_rate_cents, unit),
     area: areaParts.join(' · ') || 'Площадь уточняется',
     availableFrom,
     tags: (card.tags ?? []).slice(0, 3),
@@ -143,11 +144,19 @@ export function mapListing(card: ListingRecord): Listing {
   }
 }
 
-function formatNightlyRate(cents: number) {
+function normalizePriceUnit(unit?: string, rentalTerm?: string) {
+  if (unit === 'night' || unit === 'month') {
+    return unit
+  }
+  return rentalTerm === 'long_term' ? 'month' : 'night'
+}
+
+function formatRate(cents: number, unit: string) {
   if (!cents) {
     return 'Цена по запросу'
   }
-  return priceFormatter.format(Math.round(cents / 100))
+  const base = priceFormatter.format(Math.round(cents / 100))
+  return unit === 'month' ? `${base} / месяц` : `${base} / ночь`
 }
 
 function formatAvailableDate(value: string | undefined) {

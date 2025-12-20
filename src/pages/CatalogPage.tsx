@@ -33,6 +33,12 @@ const SORT_OPTIONS = [
   { label: 'Сначала новые', value: 'newest' },
 ]
 
+const RENTAL_TERM_OPTIONS = [
+  { label: 'Любой срок', value: '' },
+  { label: 'Посуточно', value: 'short_term' },
+  { label: 'Долгосрочно', value: 'long_term' },
+]
+
 interface CatalogPageProps {
   route: { pathname: string; search: string }
   onNavigate: (path: string, options?: { replace?: boolean }) => void
@@ -46,6 +52,7 @@ interface CatalogFormState {
   priceMin: string
   priceMax: string
   propertyType: string
+  rentalTerm: string
   sort: string
   page: number
 }
@@ -58,6 +65,7 @@ const DEFAULT_STATE: CatalogFormState = {
   priceMin: '',
   priceMax: '',
   propertyType: '',
+  rentalTerm: '',
   sort: 'price_asc',
   page: 1,
 }
@@ -72,6 +80,7 @@ function parseSearch(search: string): CatalogFormState {
     priceMin: params.get('price_min') ?? '',
     priceMax: params.get('price_max') ?? '',
     propertyType: params.get('type') ?? '',
+    rentalTerm: params.get('rental_term') ?? '',
     sort: params.get('sort') ?? DEFAULT_STATE.sort,
     page: Number(params.get('page') ?? '1') || 1,
   }
@@ -102,6 +111,9 @@ function buildQuery(state: CatalogFormState) {
   if (state.propertyType) {
     params.set('type', state.propertyType)
   }
+  if (state.rentalTerm) {
+    params.set('rental_term', state.rentalTerm)
+  }
   if (state.sort) {
     params.set('sort', state.sort)
   }
@@ -111,8 +123,10 @@ function buildQuery(state: CatalogFormState) {
 function createListingSummary(record: ListingRecord) {
   const summary = mapListing(record)
   const availability = formatAvailability(record)
-  const nightlyRate = priceFormatter.format(Math.round(record.nightly_rate_cents / 100))
-  return { summary, availability, nightlyRate }
+  const priceUnit = normalizePriceUnit(record.price_unit, record.rental_term)
+  const rate = priceFormatter.format(Math.round((record.rate_cents ?? record.nightly_rate_cents) / 100))
+  const rateLabel = priceUnit === 'month' ? `${rate} / месяц` : `${rate} / ночь`
+  return { summary, availability, rateLabel, priceUnit }
 }
 
 function formatAvailability(record: ListingRecord) {
@@ -127,6 +141,17 @@ function formatAvailability(record: ListingRecord) {
     return { text: `Свободно ${text}`, isAvailable: true }
   }
   return { text: `Недоступно ${text}`, isAvailable: false }
+}
+
+function normalizePriceUnit(unit?: string, rentalTerm?: string) {
+  if (unit === 'month' || unit === 'night') {
+    return unit
+  }
+  return rentalTerm === 'long_term' ? 'month' : 'night'
+}
+
+function priceUnitLabel(unit: string) {
+  return unit === 'month' ? 'Цена за месяц' : 'Цена за ночь'
 }
 
 export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
@@ -243,6 +268,26 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                 <h1 className="text-3xl font-semibold">Жильё, готовое принять гостей</h1>
                 <p className="text-sm text-dusty-mauve-500">{totalLabel}</p>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {RENTAL_TERM_OPTIONS.map((option) => {
+                const isActive = formState.rentalTerm === option.value
+                return (
+                  <button
+                    key={option.value || 'all-terms'}
+                    type="button"
+                    onClick={() => applyImmediateFilter({ rentalTerm: option.value })}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? 'border-dry-sage-500 bg-dry-sage-100 text-dusty-mauve-900'
+                        : 'border-dusty-mauve-200 bg-white/70 text-dusty-mauve-700 hover:border-dry-sage-400'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
             </div>
 
             <form
@@ -419,8 +464,8 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                       </div>
                       <div className="flex flex-wrap gap-6 text-sm">
                         <div>
-                          <p className="text-dusty-mauve-500">Цена за ночь</p>
-                          <p className="text-lg font-semibold text-dusty-mauve-900">{card.nightlyRate}</p>
+                          <p className="text-dusty-mauve-500">{priceUnitLabel(card.priceUnit)}</p>
+                          <p className="text-lg font-semibold text-dusty-mauve-900">{card.rateLabel}</p>
                         </div>
                         <div>
                           <p className="text-dusty-mauve-500">Доступность</p>

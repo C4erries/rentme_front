@@ -35,7 +35,7 @@ export function useCatalogListings(search: string): UseCatalogListingsResult {
     if (!hasBaseUrl) {
       setData(null)
       setLoading(false)
-      setError('API не настроен. Укажите VITE_API_BASE_URL.')
+      setError('API недоступен. Укажите VITE_API_BASE_URL.')
       return
     }
 
@@ -53,7 +53,7 @@ export function useCatalogListings(search: string): UseCatalogListingsResult {
         }
         console.warn('Catalog load failed', err)
         setData(null)
-        setError('Не удалось загрузить каталог. Попробуйте обновить страницу позже.')
+        setError('Не удалось загрузить каталог. Попробуйте обновить страницу.')
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false)

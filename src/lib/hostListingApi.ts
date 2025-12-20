@@ -6,6 +6,7 @@ import type {
   HostListingPriceSuggestionResponse,
   HostListingPhotoUploadResponse,
 } from '../types/listing'
+import type { ApiRequestOptions } from './api'
 
 interface ListHostListingsParams {
   status?: string
@@ -54,8 +55,12 @@ interface PriceSuggestionOptions {
   guests?: number
 }
 
-export async function requestPriceSuggestion(listingId: string, options: PriceSuggestionOptions = {}) {
-  return apiPost<HostListingPriceSuggestionResponse>(`/host/listings/${listingId}/price-suggestion`, { ...options })
+export async function requestPriceSuggestion(
+  listingId: string,
+  options: PriceSuggestionOptions = {},
+  requestOptions: ApiRequestOptions = {},
+) {
+  return apiPost<HostListingPriceSuggestionResponse>(`/host/listings/${listingId}/price-suggestion`, { ...options }, requestOptions)
 }
 
 export async function uploadListingPhoto(listingId: string, file: File) {

@@ -15,7 +15,10 @@ export interface ListingRecord {
   guests_limit: number
   min_nights: number
   max_nights: number
+  rate_cents?: number
   nightly_rate_cents: number
+  price_unit?: 'night' | 'month' | string
+  rental_term?: string
   bedrooms: number
   bathrooms: number
   area_sq_m: number
@@ -42,6 +45,7 @@ export interface ListingCatalogFilters {
   property_types: string[]
   check_in: string
   check_out: string
+  rental_terms?: string[]
 }
 
 export interface ListingCatalogMeta {
@@ -144,6 +148,8 @@ export interface HostListingSummary {
   region: string
   country: string
   nightly_rate_cents: number
+  rate_cents?: number
+  price_unit?: 'night' | 'month' | string
   guests_limit: number
   bedrooms: number
   bathrooms: number
@@ -181,6 +187,8 @@ export interface HostListingDetailResponse {
   tags: string[]
   highlights: string[]
   nightly_rate_cents: number
+  rate_cents?: number
+  price_unit?: 'night' | 'month' | string
   bedrooms: number
   bathrooms: number
   floor: number

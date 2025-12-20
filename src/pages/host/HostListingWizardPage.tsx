@@ -80,7 +80,12 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
 
   const { data: listingDetail, loading: detailLoading, error: detailError, refresh: refreshDetail } =
     useHostListingDetail(listingId)
-  const priceSuggestion = useHostPriceSuggestion(listingId)
+  const {
+    data: priceSuggestionData,
+    loading: priceSuggestionLoading,
+    error: priceSuggestionError,
+    fetchSuggestion: fetchPriceSuggestion,
+  } = useHostPriceSuggestion(listingId)
 
   const [form, setForm] = useState<HostListingPayload>(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -91,6 +96,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [shouldRefreshPriceSuggestion, setShouldRefreshPriceSuggestion] = useState(false)
 
   const updateForm = (patch: Partial<HostListingPayload>) => setForm((prev) => ({ ...prev, ...patch }))
   const updateAddress = (patch: Partial<HostListingPayload['address']>) =>
@@ -140,11 +146,16 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
       })
       setNoMaxNights(listingDetail.max_nights === 0)
       setStatusNote(`Статус: ${listingDetail.status}`)
-      if (listingId) {
-        priceSuggestion.fetchSuggestion()
-      }
     }
-  }, [listingDetail, listingId, priceSuggestion])
+  }, [listingDetail, listingId])
+
+  useEffect(() => {
+    if (!listingId || !shouldRefreshPriceSuggestion) {
+      return
+    }
+    setShouldRefreshPriceSuggestion(false)
+    fetchPriceSuggestion()
+  }, [listingId, shouldRefreshPriceSuggestion, fetchPriceSuggestion])
 
   const handleSave = async () => {
     setSaving(true)
@@ -155,6 +166,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         ? await updateHostListing(listingId!, payload)
         : await createHostListing(payload)
       setStatusNote(`Сохранено. ID: ${response.data.id}`)
+      setShouldRefreshPriceSuggestion(Boolean(response.data.id))
       if (!isEditMode && response.data.id) {
         withViewTransition(() => onNavigate(`/host/listings/${response.data.id}/edit`))
       } else {
@@ -459,7 +471,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
           <div className="space-y-6">
             <Section title="Ценообразование">
               <Input
-                label="Цена за ночь (руб.)"
+                label={form.rental_term === 'long_term' ? 'Цена за месяц (руб.)' : 'Цена за ночь (руб.)'}
                 type="number"
                 value={Math.round(form.nightly_rate_cents / 100)}
                 onChange={(value) => updateForm({ nightly_rate_cents: Math.round(Number(value) * 100) || 0 })}
@@ -469,24 +481,24 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                   <p className="text-sm font-semibold text-dusty-mauve-900">Рекомендация цены (ML)</p>
                   <button
                     type="button"
-                    disabled={!listingId || priceSuggestion.loading}
-                    onClick={() => priceSuggestion.fetchSuggestion()}
+                    disabled={!listingId || priceSuggestionLoading}
+                    onClick={() => fetchPriceSuggestion()}
                     className="rounded-full border border-dry-sage-400 px-3 py-1 text-xs font-semibold text-dry-sage-700 disabled:opacity-60"
                   >
-                    {priceSuggestion.loading ? 'Считаем...' : 'Обновить'}
+                    {priceSuggestionLoading ? 'Считаем...' : 'Обновить'}
                   </button>
                 </div>
-                {priceSuggestion.error && <p className="mt-2 text-sm text-red-600">{priceSuggestion.error}</p>}
-                {priceSuggestion.data && (
+                {priceSuggestionError && <p className="mt-2 text-sm text-red-600">{priceSuggestionError}</p>}
+                {priceSuggestionData && (
                   <div className="mt-2 space-y-1 text-sm text-dusty-mauve-800">
                     <p>
-                      Рекомендованная: <strong>{formatMoney(priceSuggestion.data.recommended_price_cents)}</strong>
+                      Рекомендованная: <strong>{formatMoney(priceSuggestionData.recommended_price_cents)}</strong>
                     </p>
-                    <p>Текущая: {formatMoney(priceSuggestion.data.current_price_cents)}</p>
-                    <p className="text-xs text-dry-sage-600">{priceSuggestion.data.message}</p>
+                    <p>Текущая: {formatMoney(priceSuggestionData.current_price_cents)}</p>
+                    <p className="text-xs text-dry-sage-600">{priceSuggestionData.message}</p>
                   </div>
                 )}
-                {!priceSuggestion.data && !priceSuggestion.error && (
+                {!priceSuggestionData && !priceSuggestionError && (
                   <p className="mt-2 text-sm text-dry-sage-600">Сохраните и обновите, чтобы получить рекомендацию.</p>
                 )}
               </div>
