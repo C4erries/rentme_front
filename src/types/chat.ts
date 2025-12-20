@@ -6,6 +6,7 @@ export interface Conversation {
   last_message_at?: string
   last_message_id?: string
   last_message_sender_id?: string
+  last_message_text?: string
   has_unread?: boolean
 }
 

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
+import { Header } from '../../components/Header'
 import { publishHostListing, unpublishHostListing } from '../../lib/hostListingApi'
 import { useHostListings } from '../../hooks/useHostListings'
 import { withViewTransition } from '../../lib/viewTransitions'
@@ -13,7 +14,7 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
 const statusOptions = [
   { label: 'Все', value: '' },
   { label: 'Черновики', value: 'draft' },
-  { label: 'Опубликованные', value: 'published' },
+  { label: 'Опубликовано', value: 'published' },
   { label: 'Архив', value: 'archived' },
 ]
 
@@ -40,7 +41,7 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
     setActionLoading(id)
     try {
       await publishHostListing(id)
-      await refresh()
+      refresh()
     } catch (err) {
       setActionError((err as Error).message)
     } finally {
@@ -53,7 +54,7 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
     setActionLoading(id)
     try {
       await unpublishHostListing(id)
-      await refresh()
+      refresh()
     } catch (err) {
       setActionError((err as Error).message)
     } finally {
@@ -62,18 +63,20 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
   }
 
   return (
-    <div className="bg-dusty-mauve-50 min-h-screen pb-16">
+    <div className="min-h-screen bg-dusty-mauve-50">
+      <Header onNavigate={onNavigate} />
       <div className="container py-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Хост-панель</p>
+            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Ваши объявления</p>
             <h1 className="text-3xl font-semibold text-dusty-mauve-900">Мои объявления</h1>
+            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="rounded-2xl border border-white/40 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-800 shadow-soft"
+              onChange={(event) => withViewTransition(() => setStatusFilter(event.target.value))}
+              className="rounded-full border border-dusty-mauve-200 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -83,105 +86,77 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
             </select>
             <button
               type="button"
-              onClick={() => withViewTransition(() => onNavigate('/'))}
-              className="rounded-full border border-dusty-mauve-300 px-6 py-3 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dusty-mauve-400"
-            >
-              Вернуться на главную
-            </button>
-            <button
-              type="button"
               onClick={() => withViewTransition(() => onNavigate('/host/listings/new'))}
-              className="rounded-full bg-dusty-mauve-900 px-6 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+              className="rounded-full bg-dusty-mauve-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-dusty-mauve-800"
             >
               Создать объявление
             </button>
           </div>
         </div>
 
-        {loading && (
-          <p className="mt-8 text-sm text-dusty-mauve-500">Загружаем объявления...</p>
-        )}
-        {error && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
-            Ошибка: {error}
-          </div>
-        )}
-        {actionError && (
-          <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-5 py-3 text-sm text-red-700">
-            {actionError}
-          </div>
-        )}
+        {loading && <p className="mt-6 text-sm text-dusty-mauve-600">Загрузка...</p>}
+        {actionError && <p className="mt-2 text-sm text-red-600">{actionError}</p>}
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {!loading && items.length === 0 && (
-            <div className="col-span-full rounded-3xl border border-dusty-mauve-200 bg-white/60 p-8 text-center">
-              <p className="text-lg font-semibold text-dusty-mauve-900">Нет объявлений</p>
-              <p className="mt-2 text-sm text-dusty-mauve-500">
-                Начните с создания нового объявления и заполните все этапы мастера.
-              </p>
-              <button
-                type="button"
-                onClick={() => withViewTransition(() => onNavigate('/host/listings/new'))}
-                className="mt-4 inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-2 text-sm font-semibold text-dusty-mauve-50"
-              >
-                Создать объявление
-              </button>
-            </div>
-          )}
+        <div className="mt-6 grid gap-4">
           {items.map((item) => (
             <article
               key={item.id}
-              className="flex flex-col overflow-hidden rounded-3xl border border-white/40 bg-white/70 shadow-soft"
+              className="grid gap-4 rounded-3xl border border-white/60 bg-white/90 p-5 shadow-soft md:grid-cols-[240px_1fr]"
             >
-              <div
-                className="h-40 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${item.photos?.[0] || item.thumbnail_url || ''})`,
-                }}
-              />
-              <div className="flex flex-1 flex-col gap-4 p-6">
-                <div>
+              <div className="relative h-40 overflow-hidden rounded-2xl bg-dusty-mauve-100">
+                {item.thumbnail_url ? (
+                  <img src={item.thumbnail_url} alt={item.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-dusty-mauve-500">Нет фото</div>
+                )}
+                <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-dusty-mauve-900 shadow">
+                  {statusLabels[item.status] || item.status}
+                </span>
+                <span className="absolute right-3 top-3 rounded-full bg-dusty-mauve-900/85 px-3 py-1 text-xs font-semibold text-white">
+                  {item.rental_term === 'short_term' ? 'Посуточно' : 'Долгосрочно'}
+                </span>
+              </div>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
                   <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                    {item.city}, {item.region || item.country}
+                    {item.city}, {item.region}
                   </p>
                   <h2 className="text-xl font-semibold text-dusty-mauve-900">{item.title}</h2>
+                  <p className="text-sm text-dusty-mauve-500">
+                    {item.bedrooms} комн. · {item.area_sq_m} м² · Этаж {item.floor} из {item.floors_total}
+                  </p>
+                  <p className="text-sm font-semibold text-dusty-mauve-900">
+                    {priceFormatter.format(Math.round(item.nightly_rate_cents / 100))} / ночь
+                  </p>
+                  <p className="text-xs uppercase text-dry-sage-500">До {item.guests_limit} гостей</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-dusty-mauve-600">
-                  <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-700">
-                    {statusLabels[item.status] || 'Неизвестно'}
-                  </span>
-                  <span className="text-dusty-mauve-800">
-                    {priceFormatter.format(Math.round(item.nightly_rate_cents / 100))}
-                  </span>
+                <div className="flex flex-wrap gap-2 text-xs uppercase text-dry-sage-600">
+                  <span className="rounded-full bg-dry-sage-50 px-3 py-1">Ремонт {item.renovation_score}/10</span>
+                  <span className="rounded-full bg-dry-sage-50 px-3 py-1">Дому {item.building_age_years} лет</span>
                 </div>
-                <div className="flex flex-wrap gap-3 text-sm text-dusty-mauve-600">
-                  <span>{item.guests_limit} гостей</span>
-                  <span>{item.bedrooms} спальни</span>
-                  <span>{item.bathrooms} ванные</span>
-                </div>
-                <div className="mt-auto flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => withViewTransition(() => onNavigate(`/host/listings/${item.id}/edit`))}
-                    className="rounded-2xl border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-300"
+                    className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400"
                   >
                     Редактировать
                   </button>
                   {item.status === 'published' ? (
                     <button
                       type="button"
-                      onClick={() => handleUnpublish(item.id)}
                       disabled={actionLoading === item.id}
-                      className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition hover:border-red-300 disabled:opacity-60"
+                      onClick={() => withViewTransition(() => handleUnpublish(item.id))}
+                      className="rounded-full border border-dry-sage-400 px-4 py-2 text-sm font-semibold text-dry-sage-700 transition hover:bg-dry-sage-50 disabled:opacity-60"
                     >
                       {actionLoading === item.id ? 'Снимаем...' : 'Снять с публикации'}
                     </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handlePublish(item.id)}
                       disabled={actionLoading === item.id}
-                      className="rounded-2xl bg-dusty-mauve-900 px-4 py-2 text-xs font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-60"
+                      onClick={() => withViewTransition(() => handlePublish(item.id))}
+                      className="rounded-full bg-dry-sage-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-dry-sage-500 disabled:opacity-60"
                     >
                       {actionLoading === item.id ? 'Публикуем...' : 'Опубликовать'}
                     </button>

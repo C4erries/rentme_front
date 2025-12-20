@@ -100,7 +100,7 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
               </div>
               <div className="flex items-center justify-between text-sm text-dusty-mauve-600">
                 <span className="rounded-full bg-dry-sage-50 px-3 py-1 text-dry-sage-700">
-                  Последнее сообщение: {conversation.last_message_sender_id || '—'}
+                  Последнее сообщение: {formatPreview(conversation)}
                 </span>
                 <button
                   type="button"
@@ -127,3 +127,13 @@ function formatActivity(conversation: ConversationList['items'][number]) {
   }
 }
 
+function formatPreview(conversation: ConversationList['items'][number]) {
+  const text = (conversation.last_message_text || '').trim().replace(/\s+/g, ' ')
+  if (!text) {
+    return 'Сообщений ещё нет'
+  }
+  if (text.length > 120) {
+    return `${text.slice(0, 120)}...`
+  }
+  return text
+}

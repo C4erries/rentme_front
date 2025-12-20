@@ -6,6 +6,8 @@ import { ListingPreview } from '../components/ListingPreview'
 import { useCatalogListings } from '../hooks/useCatalogListings'
 import { mapListing } from '../hooks/useFeaturedListings'
 import { withViewTransition } from '../lib/viewTransitions'
+import { createListingConversation } from '../lib/chatApi'
+import { ApiError } from '../lib/api'
 import type { Listing, ListingRecord } from '../types/listing'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -17,18 +19,18 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' })
 
 const PROPERTY_TYPE_OPTIONS = [
-  { label: 'Любой формат', value: '' },
-  { label: 'Апартаменты', value: 'apartment' },
+  { label: 'Все типы', value: '' },
+  { label: 'Квартира', value: 'apartment' },
   { label: 'Лофт', value: 'loft' },
   { label: 'Таунхаус', value: 'townhouse' },
-  { label: 'Дом/капсула', value: 'cabin' },
+  { label: 'Дом/дача', value: 'cabin' },
 ]
 
 const SORT_OPTIONS = [
-  { label: 'По цене ↑', value: 'price_asc' },
-  { label: 'По цене ↓', value: 'price_desc' },
+  { label: 'Цена ↑', value: 'price_asc' },
+  { label: 'Цена ↓', value: 'price_desc' },
   { label: 'Рейтинг', value: 'rating_desc' },
-  { label: 'Новые', value: 'newest' },
+  { label: 'Сначала новые', value: 'newest' },
 ]
 
 interface CatalogPageProps {
@@ -132,6 +134,8 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
   const { data, loading, error, refresh } = useCatalogListings(route.search)
   const listings = data?.items ?? []
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
+  const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
 
   useEffect(() => {
     setFormState(parseSearch(route.search))
@@ -190,6 +194,28 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
     applyStateToUrl(nextState)
   }
 
+  const handleContactHost = async (listingId: string) => {
+    if (!listingId) {
+      return
+    }
+    setChatError(null)
+    setChatLoadingId(listingId)
+    try {
+      const response = await createListingConversation(listingId)
+      withViewTransition(() => onNavigate(`/me/chats/${response.data.id}`))
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        const redirectTarget = `/login?redirect=${encodeURIComponent(currentPathForRedirect(route))}`
+        setChatError('Войдите, чтобы написать арендодателю')
+        withViewTransition(() => onNavigate(redirectTarget))
+      } else {
+        setChatError((err as Error).message)
+      }
+    } finally {
+      setChatLoadingId(null)
+    }
+  }
+
   const meta = data?.meta
   const totalLabel = meta ? `${meta.total} предложений` : 'Каталог'
   const initialGuests = formState.guests ? Number(formState.guests) || undefined : undefined
@@ -203,6 +229,13 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
 
         <Header onNavigate={onNavigate} />
         <main className="relative z-10 space-y-6 pb-16">
+          {chatError && (
+            <div className="container">
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-soft">
+                {chatError}
+              </div>
+            </div>
+          )}
           <section className="container space-y-4 pt-8">
             <div className="space-y-1">
               <p className="text-sm uppercase text-dry-sage-600">Каталог жилья</p>
@@ -415,6 +448,14 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                         >
                           Смотреть детали
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleContactHost(card.record.id)}
+                          disabled={chatLoadingId === card.record.id}
+                          className="inline-flex items-center rounded-full border border-dry-sage-400 px-4 py-2 text-dry-sage-700 transition hover:bg-dry-sage-50 disabled:opacity-60"
+                        >
+                          {chatLoadingId === card.record.id ? 'Открываем чат...' : 'Написать арендодателю'}
+                        </button>
                         <a
                           href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${card.record.id}`}
                           className="inline-flex items-center rounded-full border border-transparent px-4 py-2 text-dry-sage-700 underline underline-offset-4"
@@ -484,8 +525,14 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
         initialCheckOut={formState.checkOut}
         initialGuests={initialGuests}
         onNavigate={onNavigate}
-        onClose={() => withViewTransition(() => setSelectedListingId(null))}
+      onClose={() => withViewTransition(() => setSelectedListingId(null))}
       />
     </div>
   )
+}
+
+function currentPathForRedirect(route: CatalogPageProps['route']) {
+  const pathname = route?.pathname || '/catalog'
+  const search = route?.search || ''
+  return `${pathname}${search}`
 }

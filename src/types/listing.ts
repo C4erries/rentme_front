@@ -137,6 +137,9 @@ export interface HostListingSummary {
   id: string
   title: string
   status: string
+  rental_term: string
+  travel_minutes?: number
+  travel_mode?: string
   city: string
   region: string
   country: string
@@ -172,6 +175,9 @@ export interface HostListingDetailResponse {
   }
   state: string
   status: string
+  rental_term: string
+  travel_minutes?: number
+  travel_mode?: string
   tags: string[]
   highlights: string[]
   nightly_rate_cents: number
@@ -211,6 +217,9 @@ export interface HostListingPayload {
   min_nights: number
   max_nights: number
   nightly_rate_cents: number
+  rental_term: string
+  travel_minutes?: number
+  travel_mode?: string
   bedrooms: number
   bathrooms: number
   floor: number
