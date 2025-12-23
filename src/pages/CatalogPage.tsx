@@ -77,8 +77,8 @@ function parseSearch(search: string): CatalogFormState {
     checkIn: params.get('check_in') ?? '',
     checkOut: params.get('check_out') ?? '',
     guests: params.get('guests') ?? params.get('min_guests') ?? '',
-    priceMin: params.get('price_min') ?? '',
-    priceMax: params.get('price_max') ?? '',
+    priceMin: params.get('price_min_rub') ?? params.get('price_min') ?? '',
+    priceMax: params.get('price_max_rub') ?? params.get('price_max') ?? '',
     propertyType: params.get('type') ?? '',
     rentalTerm: params.get('rental_term') ?? '',
     sort: params.get('sort') ?? DEFAULT_STATE.sort,
@@ -103,10 +103,10 @@ function buildQuery(state: CatalogFormState) {
     params.set('guests', state.guests)
   }
   if (state.priceMin) {
-    params.set('price_min', state.priceMin)
+    params.set('price_min_rub', state.priceMin)
   }
   if (state.priceMax) {
-    params.set('price_max', state.priceMax)
+    params.set('price_max_rub', state.priceMax)
   }
   if (state.propertyType) {
     params.set('type', state.propertyType)
@@ -124,7 +124,7 @@ function createListingSummary(record: ListingRecord) {
   const summary = mapListing(record)
   const availability = formatAvailability(record)
   const priceUnit = normalizePriceUnit(record.price_unit, record.rental_term)
-  const rate = priceFormatter.format(Math.round((record.rate_cents ?? record.nightly_rate_cents) / 100))
+  const rate = priceFormatter.format(Math.round(record.rate_rub))
   const rateLabel = priceUnit === 'month' ? `${rate} / месяц` : `${rate} / ночь`
   return { summary, availability, rateLabel, priceUnit }
 }

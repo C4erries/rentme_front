@@ -59,7 +59,7 @@ const emptyForm: HostListingPayload = {
   guests_limit: 1,
   min_nights: 1,
   max_nights: 1,
-  nightly_rate_cents: 0,
+  rate_rub: 0,
   bedrooms: 1,
   bathrooms: 1,
   floor: 0,
@@ -131,7 +131,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         guests_limit: listingDetail.guests_limit,
         min_nights: listingDetail.min_nights,
         max_nights: listingDetail.max_nights,
-        nightly_rate_cents: listingDetail.nightly_rate_cents,
+        rate_rub: listingDetail.rate_rub,
         bedrooms: listingDetail.bedrooms,
         bathrooms: listingDetail.bathrooms,
         floor: listingDetail.floor,
@@ -473,8 +473,8 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
               <Input
                 label={form.rental_term === 'long_term' ? 'Цена за месяц (руб.)' : 'Цена за ночь (руб.)'}
                 type="number"
-                value={Math.round(form.nightly_rate_cents / 100)}
-                onChange={(value) => updateForm({ nightly_rate_cents: Math.round(Number(value) * 100) || 0 })}
+                value={Math.round(form.rate_rub)}
+                onChange={(value) => updateForm({ rate_rub: Math.round(Number(value)) || 0 })}
               />
               <div className="rounded-2xl border border-dusty-mauve-200 bg-white/70 p-4">
                 <div className="flex items-center justify-between">
@@ -492,9 +492,9 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                 {priceSuggestionData && (
                   <div className="mt-2 space-y-1 text-sm text-dusty-mauve-800">
                     <p>
-                      Рекомендованная: <strong>{formatMoney(priceSuggestionData.recommended_price_cents)}</strong>
+                      Рекомендованная: <strong>{formatMoney(priceSuggestionData.recommended_price_rub)}</strong>
                     </p>
-                    <p>Текущая: {formatMoney(priceSuggestionData.current_price_cents)}</p>
+                    <p>Текущая: {formatMoney(priceSuggestionData.current_price_rub)}</p>
                     <p className="text-xs text-dry-sage-600">{priceSuggestionData.message}</p>
                   </div>
                 )}
@@ -718,13 +718,13 @@ function preparePayload(form: HostListingPayload) {
   }
 }
 
-function formatMoney(cents: number) {
-  if (!cents) {
-    return '—'
+function formatMoney(rub: number) {
+  if (!rub) {
+    return '-'
   }
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
     maximumFractionDigits: 0,
-  }).format(Math.round(cents / 100))
+  }).format(Math.round(rub))
 }

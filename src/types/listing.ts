@@ -15,8 +15,7 @@ export interface ListingRecord {
   guests_limit: number
   min_nights: number
   max_nights: number
-  rate_cents?: number
-  nightly_rate_cents: number
+  rate_rub: number
   price_unit?: 'night' | 'month' | string
   rental_term?: string
   bedrooms: number
@@ -40,8 +39,8 @@ export interface ListingCatalogFilters {
   tags: string[]
   amenities: string[]
   min_guests: number
-  price_min_cents: number
-  price_max_cents: number
+  price_min_rub: number
+  price_max_rub: number
   property_types: string[]
   check_in: string
   check_out: string
@@ -147,8 +146,7 @@ export interface HostListingSummary {
   city: string
   region: string
   country: string
-  nightly_rate_cents: number
-  rate_cents?: number
+  rate_rub: number
   price_unit?: 'night' | 'month' | string
   guests_limit: number
   bedrooms: number
@@ -186,8 +184,7 @@ export interface HostListingDetailResponse {
   travel_mode?: string
   tags: string[]
   highlights: string[]
-  nightly_rate_cents: number
-  rate_cents?: number
+  rate_rub: number
   price_unit?: 'night' | 'month' | string
   bedrooms: number
   bathrooms: number
@@ -224,7 +221,7 @@ export interface HostListingPayload {
   guests_limit: number
   min_nights: number
   max_nights: number
-  nightly_rate_cents: number
+  rate_rub: number
   rental_term: string
   travel_minutes?: number
   travel_mode?: string
@@ -241,8 +238,8 @@ export interface HostListingPayload {
 
 export interface HostListingPriceSuggestionResponse {
   listing_id: string
-  recommended_price_cents: number
-  current_price_cents: number
+  recommended_price_rub: number
+  current_price_rub: number
   price_level: 'below_market' | 'fair' | 'above_market'
   price_gap_percent: number
   message: string

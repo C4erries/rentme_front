@@ -231,5 +231,5 @@ function formatMoney(booking: GuestBookingSummary) {
     currency,
     maximumFractionDigits: 0,
   })
-  return formatter.format(Math.round(amount / 100))
+  return formatter.format(Math.round(amount))
 }

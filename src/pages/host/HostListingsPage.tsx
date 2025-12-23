@@ -178,6 +178,6 @@ function normalizePriceUnit(unit?: string, rentalTerm?: string) {
 
 function formatRate(item: HostListingSummary) {
   const unit = normalizePriceUnit(item.price_unit, item.rental_term)
-  const value = priceFormatter.format(Math.round(item.nightly_rate_cents / 100))
+  const value = priceFormatter.format(Math.round(item.rate_rub))
   return unit === 'month' ? `${value} / месяц` : `${value} / ночь`
 }

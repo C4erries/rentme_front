@@ -133,7 +133,7 @@ export function mapListing(card: ListingRecord): Listing {
     id: card.id,
     title: card.title,
     location: locationParts.join(' · ') || card.city || 'Локация уточняется',
-    price: formatRate(card.rate_cents ?? card.nightly_rate_cents, unit),
+    price: formatRate(card.rate_rub, unit),
     area: areaParts.join(' · ') || 'Площадь уточняется',
     availableFrom,
     tags: (card.tags ?? []).slice(0, 3),
@@ -151,11 +151,11 @@ function normalizePriceUnit(unit?: string, rentalTerm?: string) {
   return rentalTerm === 'long_term' ? 'month' : 'night'
 }
 
-function formatRate(cents: number, unit: string) {
-  if (!cents) {
+function formatRate(rub: number, unit: string) {
+  if (!rub) {
     return 'Цена по запросу'
   }
-  const base = priceFormatter.format(Math.round(cents / 100))
+  const base = priceFormatter.format(Math.round(rub))
   return unit === 'month' ? `${base} / месяц` : `${base} / ночь`
 }
 
