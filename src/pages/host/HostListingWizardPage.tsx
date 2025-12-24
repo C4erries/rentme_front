@@ -27,7 +27,7 @@ const rentalTermOptions = [
 
 const travelModes = [
   { value: 'car', label: 'На машине' },
-  { value: 'public', label: 'Общественный транспорт' },
+  { value: 'transit', label: 'Общественный транспорт' },
   { value: 'walk', label: 'Пешком/вело' },
 ]
 
@@ -141,7 +141,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
         area_sq_m: listingDetail.area_sq_m,
         available_from: listingDetail.available_from?.slice(0, 10) ?? '',
         travel_minutes: listingDetail.travel_minutes ?? emptyForm.travel_minutes,
-        travel_mode: listingDetail.travel_mode || emptyForm.travel_mode,
+        travel_mode: normalizeTravelMode(listingDetail.travel_mode) || emptyForm.travel_mode,
         photos,
       })
       setNoMaxNights(listingDetail.max_nights === 0)
@@ -701,6 +701,14 @@ function splitLines(value: string) {
     .filter(Boolean)
 }
 
+function normalizeTravelMode(value?: string) {
+  const normalized = (value || '').trim().toLowerCase()
+  if (normalized === 'public') {
+    return 'transit'
+  }
+  return normalized || 'car'
+}
+
 function preparePayload(form: HostListingPayload) {
   const goodPhotos = (form.photos ?? []).filter(Boolean)
   const cover =
@@ -710,7 +718,7 @@ function preparePayload(form: HostListingPayload) {
   return {
     ...form,
     rental_term: form.rental_term || 'long_term',
-    travel_mode: form.travel_mode || 'car',
+    travel_mode: normalizeTravelMode(form.travel_mode),
     travel_minutes: Math.max(0, Number(form.travel_minutes) || 0),
     photos: goodPhotos,
     thumbnail_url: cover || undefined,

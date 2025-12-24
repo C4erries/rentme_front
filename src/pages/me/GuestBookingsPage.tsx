@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Header } from '../../components/Header'
 import { useGuestBookings } from '../../hooks/useGuestBookings'
 import { submitReview } from '../../lib/reviewsApi'
+import { createBookingConversation } from '../../lib/chatApi'
+import { ApiError } from '../../lib/api'
 import { withViewTransition } from '../../lib/viewTransitions'
 import type { GuestBookingSummary } from '../../types/booking'
 
@@ -38,6 +40,8 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
   const { data, loading, error, refresh } = useGuestBookings()
   const bookings = data?.items ?? []
   const [reviewForms, setReviewForms] = useState<Record<string, ReviewFormState>>({})
+  const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
 
   const getFormState = (bookingId: string): ReviewFormState => {
     return reviewForms[bookingId] || { rating: '5', text: '' }
@@ -69,6 +73,25 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
     }
   }
 
+  const handleOpenChat = async (booking: GuestBookingSummary) => {
+    setChatError(null)
+    setChatLoadingId(booking.id)
+    try {
+      const response = await createBookingConversation(booking.id)
+      withViewTransition(() => onNavigate(`/me/chats/${response.data.id}`))
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        const redirectTarget = `/login?redirect=${encodeURIComponent('/me/bookings')}`
+        setChatError('????? ???????????, ????? ??????? ???')
+        withViewTransition(() => onNavigate(redirectTarget))
+      } else {
+        setChatError((err as Error).message)
+      }
+    } finally {
+      setChatLoadingId(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-dusty-mauve-50">
       <Header onNavigate={onNavigate} />
@@ -86,6 +109,12 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
             Обновить список
           </button>
         </div>
+
+        {chatError && (
+          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
+            {chatError}
+          </div>
+        )}
 
         {loading && <p className="mt-8 text-sm text-dusty-mauve-500">Загружаем бронирования...</p>}
         {error && (
@@ -109,44 +138,59 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
         )}
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {bookings.map((booking) => (
-            <article
-              key={booking.id}
-              className="flex flex-col overflow-hidden rounded-3xl border border-white/50 bg-white/80 shadow-soft"
-            >
-              <div
-                className="h-48 bg-cover bg-center"
-                style={{ backgroundImage: `url(${booking.listing.thumbnail_url || ''})` }}
-              />
-              <div className="flex flex-col gap-4 p-6">
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                    {booking.listing.city}, {booking.listing.region || booking.listing.country}
+          {bookings.map((booking) => {
+            const isChatLoadingForBooking = chatLoadingId === booking.id
+            return (
+              <article
+                key={booking.id}
+                className="flex flex-col overflow-hidden rounded-3xl border border-white/50 bg-white/80 shadow-soft"
+              >
+                <div
+                  className="h-48 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${booking.listing.thumbnail_url || ''})` }}
+                />
+                <div className="flex flex-col gap-4 p-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-dry-sage-500">
+                      {booking.listing.city}, {booking.listing.region || booking.listing.country}
+                    </p>
+                    <h2 className="text-xl font-semibold text-dusty-mauve-900">{booking.listing.title}</h2>
+                    <p className="text-sm text-dusty-mauve-500">{booking.listing.address_line1}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-dusty-mauve-600">
+                    <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-700">
+                      {statusLabels[booking.status] ?? booking.status}
+                    </span>
+                    <span>
+                      {formatDateRange(booking)}
+                      {formatStayLabel(booking) && <span className="ml-2 text-dusty-mauve-400">·</span>}
+                      {formatStayLabel(booking)}
+                      <span className="ml-2 text-dusty-mauve-400">·</span>
+                      {booking.guests} гостя
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-2 text-dusty-mauve-900">
+                    <p className="text-2xl font-semibold">{formatMoney(booking)}</p>
+                    <span className="text-sm text-dusty-mauve-500">за бронирование</span>
+                  </div>
+                  <p className="text-xs uppercase tracking-widest text-dry-sage-400">
+                    Создано {new Date(booking.created_at).toLocaleDateString('ru-RU')}
                   </p>
-                  <h2 className="text-xl font-semibold text-dusty-mauve-900">{booking.listing.title}</h2>
-                  <p className="text-sm text-dusty-mauve-500">{booking.listing.address_line1}</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenChat(booking)}
+                      disabled={isChatLoadingForBooking}
+                      className="inline-flex items-center rounded-full border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400 disabled:opacity-60"
+                    >
+                      {isChatLoadingForBooking ? 'Чат загружается...' : 'Перейти в чат'}
+                    </button>
+                  </div>
+                  {renderReviewBlock(booking, getFormState(booking.id), handleSubmitReview, updateFormState)}
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-dusty-mauve-600">
-                  <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-700">
-                    {statusLabels[booking.status] ?? booking.status}
-                  </span>
-                  <span>
-                    {formatDateRange(booking)}
-                    <span className="ml-2 text-dusty-mauve-400">·</span>
-                    {booking.guests} гостя
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2 text-dusty-mauve-900">
-                  <p className="text-2xl font-semibold">{formatMoney(booking)}</p>
-                  <span className="text-sm text-dusty-mauve-500">за бронирование</span>
-                </div>
-                <p className="text-xs uppercase tracking-widest text-dry-sage-400">
-                  Создано {new Date(booking.created_at).toLocaleDateString('ru-RU')}
-                </p>
-                {renderReviewBlock(booking, getFormState(booking.id), handleSubmitReview, updateFormState)}
-              </div>
-            </article>
-          ))}
+              </article>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -221,6 +265,13 @@ function formatDateRange(booking: GuestBookingSummary) {
   const start = dateFormatter.format(new Date(booking.check_in))
   const end = dateFormatter.format(new Date(booking.check_out))
   return `${start} — ${end}`
+}
+
+function formatStayLabel(booking: GuestBookingSummary) {
+  if (booking.price_unit === 'month' && booking.months && booking.months > 0) {
+    return `${booking.months} ???.`
+  }
+  return ''
 }
 
 function formatMoney(booking: GuestBookingSummary) {

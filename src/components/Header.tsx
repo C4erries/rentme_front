@@ -138,13 +138,22 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
                         </button>
                       )}
                       {isHost && (
-                        <button
-                          type="button"
-                          className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
-                          onClick={() => navigate('/host/listings')}
-                        >
-                          Мои объявления
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
+                            onClick={() => navigate('/host/bookings')}
+                          >
+                            Брони гостей
+                          </button>
+                          <button
+                            type="button"
+                            className="mt-1 flex w-full items-center justify-between rounded-xl px-3 py-2 hover:bg-dusty-mauve-50"
+                            onClick={() => navigate('/host/listings')}
+                          >
+                            Мои объявления
+                          </button>
+                        </>
                       )}
                       <button
                         type="button"

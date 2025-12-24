@@ -4,6 +4,7 @@ import { useListingReviews } from '../hooks/useListingReviews'
 import { createBooking } from '../lib/bookingApi'
 import { ApiError } from '../lib/api'
 import { createListingConversation } from '../lib/chatApi'
+import { useAuth } from '../context/AuthContext'
 import type { Listing } from '../types/listing'
 import type { Review } from '../types/review'
 
@@ -32,6 +33,7 @@ export function ListingPreview({
   onClose,
 }: ListingPreviewProps) {
   const { data, loading, error } = useListingOverview(listingId)
+  const { user } = useAuth()
   const {
     data: reviewsData,
     loading: reviewsLoading,
@@ -40,6 +42,7 @@ export function ListingPreview({
   const [checkIn, setCheckIn] = useState(initialCheckIn ?? '')
   const [checkOut, setCheckOut] = useState(initialCheckOut ?? '')
   const [guests, setGuests] = useState(initialGuests && initialGuests > 0 ? initialGuests : 1)
+  const [months, setMonths] = useState(3)
   const [submitting, setSubmitting] = useState(false)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null)
@@ -50,6 +53,7 @@ export function ListingPreview({
     setCheckIn(initialCheckIn ?? '')
     setCheckOut(initialCheckOut ?? '')
     setGuests(initialGuests && initialGuests > 0 ? initialGuests : 1)
+    setMonths(3)
     setBookingError(null)
     setBookingSuccess(null)
     setChatError(null)
@@ -69,19 +73,17 @@ export function ListingPreview({
     return null
   }
 
+  const isLongTerm = (data?.rental_term ?? 'short_term') === 'long_term'
+  const isOwned = Boolean(user?.id && data?.host?.id === user.id)
+
   const handleBooking = async () => {
-    if (!checkIn || !checkOut) {
-      setBookingError('Укажите даты заезда и выезда')
+    if (!checkIn) {
+      setBookingError('Укажите дату заезда')
       return
     }
     const checkInDate = new Date(checkIn)
-    const checkOutDate = new Date(checkOut)
-    if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
-      setBookingError('Неверный формат дат')
-      return
-    }
-    if (checkOutDate <= checkInDate) {
-      setBookingError('Дата выезда должна быть позже заезда')
+    if (Number.isNaN(checkInDate.getTime())) {
+      setBookingError('Неверный формат даты заезда')
       return
     }
     setSubmitting(true)
@@ -89,12 +91,38 @@ export function ListingPreview({
     setBookingSuccess(null)
     try {
       const guestsCount = guests > 0 ? guests : 1
-      await createBooking({
-        listing_id: listingId,
-        check_in: checkInDate.toISOString(),
-        check_out: checkOutDate.toISOString(),
-        guests: guestsCount,
-      })
+      if (isLongTerm) {
+        if (months < 1 || months > 12) {
+          setBookingError('Срок аренды должен быть от 1 до 12 месяцев')
+          return
+        }
+        await createBooking({
+          listing_id: listingId,
+          check_in: checkInDate.toISOString(),
+          months,
+          guests: guestsCount,
+        })
+      } else {
+        if (!checkOut) {
+          setBookingError('Укажите дату выезда')
+          return
+        }
+        const checkOutDate = new Date(checkOut)
+        if (Number.isNaN(checkOutDate.getTime())) {
+          setBookingError('Неверный формат даты выезда')
+          return
+        }
+        if (checkOutDate <= checkInDate) {
+          setBookingError('Дата выезда должна быть позже заезда')
+          return
+        }
+        await createBooking({
+          listing_id: listingId,
+          check_in: checkInDate.toISOString(),
+          check_out: checkOutDate.toISOString(),
+          guests: guestsCount,
+        })
+      }
       setBookingSuccess('Бронирование создано')
       if (onNavigate) {
         onNavigate('/me/bookings')
@@ -121,6 +149,10 @@ export function ListingPreview({
   }
 
   const handleContactHost = async () => {
+    if (isOwned) {
+      setChatError('??? ???? ??????????')
+      return
+    }
     setChatError(null)
     setChatLoading(true)
     try {
@@ -183,7 +215,7 @@ export function ListingPreview({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-4xl rounded-3xl bg-white/95 p-6 shadow-2xl sm:p-8"
+        className="relative w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl bg-white/95 p-6 shadow-2xl sm:p-8"
       >
         <button
           type="button"
@@ -192,12 +224,17 @@ export function ListingPreview({
         >
           Закрыть
         </button>
-
-        <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
+        <div className="max-h-[72vh] overflow-y-auto pr-2">
+          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
             <div className="space-y-1">
               <p className="text-xs uppercase text-dry-sage-600">Краткое описание</p>
               <h3 className="text-2xl font-semibold text-dusty-mauve-900">{title}</h3>
+              {isOwned && (
+                <span className="mt-2 inline-flex w-fit rounded-full bg-dusty-mauve-900 px-3 py-1 text-xs font-semibold uppercase text-dusty-mauve-50">
+                  ???? ??????????
+                </span>
+              )}
               <p className="text-sm text-dusty-mauve-500">{location}</p>
             </div>
 
@@ -308,7 +345,7 @@ export function ListingPreview({
                 <p className="text-xs uppercase text-dry-sage-600">Бронирование</p>
                 {bookingSuccess && <span className="text-xs font-semibold text-dry-sage-700">{bookingSuccess}</span>}
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className={`grid gap-3 ${isLongTerm ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
                 <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
                   <span>Заезд</span>
                   <input
@@ -318,15 +355,29 @@ export function ListingPreview({
                     className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
-                  <span>Выезд</span>
-                  <input
-                    type="date"
-                    value={checkOut}
-                    onChange={(event) => setCheckOut(event.target.value)}
-                    className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
-                  />
-                </label>
+                {isLongTerm ? (
+                  <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
+                    <span>Срок аренды (мес.)</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={months}
+                      onChange={(event) => setMonths(Math.min(12, Math.max(1, Number(event.target.value) || 1)))}
+                      className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+                    />
+                  </label>
+                ) : (
+                  <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
+                    <span>Выезд</span>
+                    <input
+                      type="date"
+                      value={checkOut}
+                      onChange={(event) => setCheckOut(event.target.value)}
+                      className="rounded-xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
+                    />
+                  </label>
+                )}
                 <label className="flex flex-col gap-1 text-xs uppercase text-dry-sage-600">
                   <span>Гостей</span>
                   <input
@@ -338,6 +389,24 @@ export function ListingPreview({
                   />
                 </label>
               </div>
+              {isLongTerm && (
+                <div className="flex flex-wrap gap-2 text-xs text-dusty-mauve-500">
+                  {[1, 3, 6, 12].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setMonths(preset)}
+                      className={`rounded-full border px-3 py-1 transition ${
+                        months === preset
+                          ? 'border-dry-sage-500 bg-dry-sage-100 text-dry-sage-800'
+                          : 'border-dusty-mauve-200 bg-white/70 text-dusty-mauve-600 hover:border-dry-sage-400'
+                      }`}
+                    >
+                      {preset} мес.
+                    </button>
+                  ))}
+                </div>
+              )}
               {bookingError && <p className="text-sm text-red-600">{bookingError}</p>}
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -364,10 +433,10 @@ export function ListingPreview({
               <button
                 type="button"
                 onClick={handleContactHost}
-                disabled={chatLoading}
+                disabled={chatLoading || isOwned}
                 className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-60"
               >
-                {chatLoading ? 'Открываем чат...' : 'Написать арендодателю'}
+                {isOwned ? '??? ???? ??????????' : chatLoading ? '????????? ???...' : '???????? ????????????'}
               </button>
               <a
                 href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${listingId}`}
@@ -387,16 +456,17 @@ export function ListingPreview({
             {chatError && <p className="text-sm text-red-600">{chatError}</p>}
           </div>
 
-          {summary?.thumbnail && (
-            <div className="space-y-3">
-              <div className="overflow-hidden rounded-3xl">
-                <img src={summary.thumbnail} alt={summary.title} className="h-60 w-full object-cover sm:h-full" />
+            {summary?.thumbnail && (
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-3xl">
+                  <img src={summary.thumbnail} alt={summary.title} className="h-60 w-full object-cover sm:h-full" />
+                </div>
+                <p className="text-xs uppercase text-dusty-mauve-500">
+                  ID объявления · <span className="font-mono">{summary.id}</span>
+                </p>
               </div>
-              <p className="text-xs uppercase text-dusty-mauve-500">
-                ID объявления · <span className="font-mono">{summary.id}</span>
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

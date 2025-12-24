@@ -3,6 +3,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { LandingPage } from './pages/LandingPage'
 import { HostListingsPage } from './pages/host/HostListingsPage'
 import { HostListingWizardPage } from './pages/host/HostListingWizardPage'
+import { HostBookingsPage } from './pages/host/HostBookingsPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { GuestBookingsPage } from './pages/me/GuestBookingsPage'
@@ -124,6 +125,9 @@ function App() {
   }
   if (pathname === '/host/listings') {
     return renderProtected(<HostListingsPage onNavigate={navigate} />, { requireHost: true })
+  }
+  if (pathname === '/host/bookings') {
+    return renderProtected(<HostBookingsPage onNavigate={navigate} />, { requireHost: true })
   }
   if (isHostWizardPath(pathname)) {
     return renderProtected(<HostListingWizardPage route={route} onNavigate={navigate} />, { requireHost: true })

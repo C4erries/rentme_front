@@ -3,7 +3,8 @@ import { apiPost } from './api'
 export interface CreateBookingPayload {
   listing_id: string
   check_in: string
-  check_out: string
+  check_out?: string
+  months?: number
   guests: number
 }
 

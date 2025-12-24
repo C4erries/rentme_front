@@ -19,6 +19,8 @@ export interface GuestBookingSummary {
   check_in: string
   check_out: string
   guests: number
+  months?: number
+  price_unit?: 'night' | 'month' | string
   status: string
   total: MoneyDTO
   created_at: string
@@ -28,4 +30,22 @@ export interface GuestBookingSummary {
 
 export interface GuestBookingCollection {
   items: GuestBookingSummary[]
+}
+
+export interface HostBookingSummary {
+  id: string
+  listing: BookingListingSnapshot
+  guest_id: string
+  check_in: string
+  check_out: string
+  guests: number
+  months?: number
+  price_unit?: 'night' | 'month' | string
+  status: string
+  total: MoneyDTO
+  created_at: string
+}
+
+export interface HostBookingCollection {
+  items: HostBookingSummary[]
 }

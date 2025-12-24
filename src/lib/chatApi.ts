@@ -48,3 +48,7 @@ export function createDirectConversation(userId: string) {
 export function createListingConversation(listingId: string) {
   return apiPost<Conversation>(`/listings/${listingId}/chat`, {})
 }
+
+export function createBookingConversation(bookingId: string) {
+  return apiPost<Conversation>(`/bookings/${bookingId}/chat`, {})
+}

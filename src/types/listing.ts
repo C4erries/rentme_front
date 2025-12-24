@@ -6,6 +6,7 @@ export interface ListingCatalogResponse {
 
 export interface ListingRecord {
   id: string
+  host_id?: string
   title: string
   city: string
   region: string
@@ -117,6 +118,7 @@ export interface ListingOverview {
   guests_limit: number
   min_nights: number
   max_nights: number
+  rental_term?: string
   house_rules: string[]
   host: {
     id: string

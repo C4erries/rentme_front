@@ -8,6 +8,7 @@ import { mapListing } from '../hooks/useFeaturedListings'
 import { withViewTransition } from '../lib/viewTransitions'
 import { createListingConversation } from '../lib/chatApi'
 import { ApiError } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import type { Listing, ListingRecord } from '../types/listing'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -155,6 +156,7 @@ function priceUnitLabel(unit: string) {
 }
 
 export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
+  const { user } = useAuth()
   const [formState, setFormState] = useState<CatalogFormState>(() => parseSearch(route.search))
   const { data, loading, error, refresh } = useCatalogListings(route.search)
   const listings = data?.items ?? []
@@ -221,6 +223,9 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
 
   const handleContactHost = async (listingId: string) => {
     if (!listingId) {
+      return
+    }
+    if (user && listings.some((item) => item.id === listingId && item.host_id === user.id)) {
       return
     }
     setChatError(null)
@@ -442,16 +447,30 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                   />
                 ))
               ) : cards.length > 0 ? (
-                cards.map((card) => (
-                  <article
-                    key={card.record.id}
-                    className="grid gap-4 rounded-3xl border border-dusty-mauve-100 bg-white/90 p-5 shadow-sm sm:grid-cols-[1.2fr_0.8fr]"
-                  >
+                cards.map((card) => {
+                  const isOwnListing = Boolean(user?.id && card.record.host_id === user.id)
+                  const isChatLoading = chatLoadingId === card.record.id
+                  const contactButtonDisabled = isOwnListing || isChatLoading
+                  const contactButtonLabel = isOwnListing
+                    ? '??? ???? ??????????'
+                    : isChatLoading
+                      ? '????????? ???...'
+                      : '???????? ????????????'
+                  return (
+                    <article
+                      key={card.record.id}
+                      className="grid gap-4 rounded-3xl border border-dusty-mauve-100 bg-white/90 p-5 shadow-sm sm:grid-cols-[1.2fr_0.8fr]"
+                    >
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs uppercase text-dry-sage-600">
                         <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
                           {card.record.property_type || 'жильё'}
                         </span>
+                        {user?.id && card.record.host_id === user.id && (
+                          <span className="rounded-full bg-dusty-mauve-900 px-3 py-1 text-dusty-mauve-50">
+                            ???? ??????????
+                          </span>
+                        )}
                         {card.record.tags?.slice(0, 3).map((tag) => (
                           <span key={tag} className="rounded-full bg-white/70 px-3 py-1 text-dusty-mauve-500">
                             {tag}
@@ -496,10 +515,10 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                         <button
                           type="button"
                           onClick={() => handleContactHost(card.record.id)}
-                          disabled={chatLoadingId === card.record.id}
+                          disabled={contactButtonDisabled}
                           className="inline-flex items-center rounded-full border border-dry-sage-400 px-4 py-2 text-dry-sage-700 transition hover:bg-dry-sage-50 disabled:opacity-60"
                         >
-                          {chatLoadingId === card.record.id ? 'Открываем чат...' : 'Написать арендодателю'}
+                          {contactButtonLabel}
                         </button>
                         <a
                           href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${card.record.id}`}
@@ -525,7 +544,8 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                       )}
                     </div>
                   </article>
-                ))
+                )
+              })
               ) : (
                 <div className="rounded-3xl border border-dusty-mauve-100 bg-white/90 p-6 text-sm text-dusty-mauve-600">
                   По запросу ничего не найдено. Измените фильтры или даты, чтобы увидеть доступные варианты.
