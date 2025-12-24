@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { useChatMessages } from '../../hooks/useChatMessages'
 import { markChatRead, sendChatMessage } from '../../lib/chatApi'
 import { withViewTransition } from '../../lib/viewTransitions'
@@ -128,14 +129,20 @@ export function ChatThreadPage({ conversationId, onNavigate, refreshChats, conve
           </div>
         </div>
 
-        {loading && (
-          <div className="mt-6 rounded-3xl border border-white/60 bg-white/80 p-4 text-sm text-dusty-mauve-600 shadow-soft">
-            Загружаем переписку...
+        {error && !loading && (
+          <div className="mt-6">
+            <StateCard
+              variant="error"
+              title="Чат временно недоступен"
+              description={error}
+              actionLabel="К списку чатов"
+              onAction={() => withViewTransition(() => onNavigate('/me/chats'))}
+            />
           </div>
         )}
-        {error && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700 shadow-soft">
-            {error}
+        {loading && (
+          <div className="mt-6">
+            <StateCard variant="loading" title="Загружаем переписку" description="Собираем сообщения." />
           </div>
         )}
 

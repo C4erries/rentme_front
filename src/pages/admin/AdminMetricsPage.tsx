@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { getMlMetrics } from '../../lib/adminApi'
 import type { MlMetrics, ModelMetrics } from '../../types/admin'
 
@@ -11,6 +12,7 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
   const [data, setData] = useState<MlMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -27,7 +29,7 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
         }
       })
     return () => controller.abort()
-  }, [])
+  }, [reloadToken])
 
   return (
     <div className="min-h-screen bg-dusty-mauve-50">
@@ -41,13 +43,38 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
           </div>
         </div>
 
-        {error && <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {loading && <p className="mt-6 text-sm text-dusty-mauve-600">Загружаем метрики...</p>}
+        {error && !loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="error"
+              title="Метрики недоступны"
+              description={error}
+              actionLabel="Повторить"
+              onAction={() => setReloadToken((token) => token + 1)}
+            />
+          </div>
+        )}
+        {loading && (
+          <div className="mt-4">
+            <StateCard variant="loading" title="Загружаем метрики" description="Собираем показатели ML-сервиса." />
+          </div>
+        )}
 
         {data && (
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <MetricsCard title="Short term" metrics={data.short_term} accent="bg-dry-sage-600" />
             <MetricsCard title="Long term" metrics={data.long_term} accent="bg-dusty-mauve-900" />
+          </div>
+        )}
+        {!loading && !error && !data && (
+          <div className="mt-6">
+            <StateCard
+              variant="empty"
+              title="Нет данных по метрикам"
+              description="ML-сервис может быть недоступен или еще не собрал статистику."
+              actionLabel="Повторить"
+              onAction={() => setReloadToken((token) => token + 1)}
+            />
           </div>
         )}
       </div>

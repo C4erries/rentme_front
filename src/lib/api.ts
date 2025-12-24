@@ -44,7 +44,12 @@ async function executeRequest<T>(path: string, init: RequestInit) {
   const url = buildApiUrl(path)
   const shouldSendJSON = init.body != null && !(init.body instanceof FormData)
   const headers = buildHeaders(init.headers, shouldSendJSON)
-  const response = await fetch(url, { ...init, headers })
+  let response: Response
+  try {
+    response = await fetch(url, { ...init, headers })
+  } catch {
+    throw new ApiError('Сервис временно недоступен. Попробуйте позже.', 0)
+  }
   if (!response.ok) {
     const payload = await tryParseJson(response)
     const message = extractErrorMessage(payload, response.status)
@@ -84,13 +89,45 @@ async function tryParseJson(response: Response) {
 }
 
 function extractErrorMessage(payload: unknown, status: number): string {
+  const fallback = statusFallbackMessage(status)
   if (payload && typeof payload === 'object' && 'error' in payload) {
     const errorValue = Reflect.get(payload, 'error')
     if (typeof errorValue === 'string' && errorValue.trim().length > 0) {
+      if (status >= 500 || status === 401 || status === 403) {
+        return fallback
+      }
       return errorValue
     }
   }
-  return `Request failed with status ${status}`
+  return fallback
+}
+
+function statusFallbackMessage(status: number): string {
+  if (status === 0) {
+    return 'Сервис временно недоступен. Попробуйте позже.'
+  }
+  if (status === 400) {
+    return 'Проверьте данные и попробуйте снова.'
+  }
+  if (status === 401) {
+    return 'Нужна авторизация, чтобы продолжить.'
+  }
+  if (status === 403) {
+    return 'Недостаточно прав для этого действия.'
+  }
+  if (status === 404) {
+    return 'Ничего не найдено.'
+  }
+  if (status === 409) {
+    return 'Конфликт данных. Обновите страницу и повторите.'
+  }
+  if (status === 422) {
+    return 'Проверьте поля формы и попробуйте снова.'
+  }
+  if (status >= 500) {
+    return 'Сервис временно недоступен. Попробуйте позже.'
+  }
+  return `Ошибка запроса (${status}).`
 }
 
 export async function apiGet<T>(path: string, options: ApiRequestOptions = {}) {

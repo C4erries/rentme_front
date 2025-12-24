@@ -1,4 +1,5 @@
 ﻿import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { withViewTransition } from '../../lib/viewTransitions'
 import type { ConversationList } from '../../types/chat'
 
@@ -53,30 +54,32 @@ export function ChatListPage({ onNavigate, chatState }: ChatListPageProps) {
           </div>
         </div>
 
-        {chatState.loading && (
-          <div className="mt-8 rounded-3xl border border-white/60 bg-white/80 p-4 text-sm text-dusty-mauve-600 shadow-soft">
-            Загружаем чаты...
+        {chatState.error && !chatState.loading && (
+          <div className="mt-6">
+            <StateCard
+              variant="error"
+              title="Не удалось загрузить чаты"
+              description={chatState.error}
+              actionLabel="Повторить"
+              onAction={() => withViewTransition(chatState.refresh)}
+            />
           </div>
         )}
-        {chatState.error && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700 shadow-soft">
-            {chatState.error}
+        {chatState.loading && (
+          <div className="mt-6">
+            <StateCard variant="loading" title="Загружаем чаты" description="Проверяем новые сообщения." />
           </div>
         )}
 
         {!chatState.loading && conversations.length === 0 && (
-          <div className="mt-10 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-10 text-center shadow-soft">
-            <p className="text-lg font-semibold text-dusty-mauve-900">Пока нет переписок</p>
-            <p className="mt-2 text-sm text-dusty-mauve-500">
-              Напишите арендодателю из каталога или ответьте на новые заявки, чтобы начать общение.
-            </p>
-            <button
-              type="button"
-              onClick={() => withViewTransition(() => onNavigate('/catalog'))}
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-dry-sage-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-dry-sage-500"
-            >
-              Перейти в каталог
-            </button>
+          <div className="mt-10">
+            <StateCard
+              variant="empty"
+              title="Пока нет переписок"
+              description="Напишите арендодателю из каталога, чтобы начать общение."
+              actionLabel="Перейти в каталог"
+              onAction={() => withViewTransition(() => onNavigate('/catalog'))}
+            />
           </div>
         )}
 

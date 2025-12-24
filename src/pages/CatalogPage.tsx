@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { ListingPreview } from '../components/ListingPreview'
+import { StateCard } from '../components/StateCard'
 import { useCatalogListings } from '../hooks/useCatalogListings'
 import { mapListing } from '../hooks/useFeaturedListings'
 import { withViewTransition } from '../lib/viewTransitions'
@@ -28,8 +29,8 @@ const PROPERTY_TYPE_OPTIONS = [
 ]
 
 const SORT_OPTIONS = [
-  { label: 'Цена ↑', value: 'price_asc' },
-  { label: 'Цена ↓', value: 'price_desc' },
+  { label: 'Цена: дешевле', value: 'price_asc' },
+  { label: 'Цена: дороже', value: 'price_desc' },
   { label: 'Рейтинг', value: 'rating_desc' },
   { label: 'Сначала новые', value: 'newest' },
 ]
@@ -163,10 +164,21 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
+  const listingFromQuery = useMemo(() => {
+    const params = new URLSearchParams(route.search?.startsWith('?') ? route.search.slice(1) : route.search ?? '')
+    const value = params.get('listing_id')?.trim()
+    return value || null
+  }, [route.search])
 
   useEffect(() => {
     setFormState(parseSearch(route.search))
   }, [route.search])
+
+  useEffect(() => {
+    if (listingFromQuery && listingFromQuery !== selectedListingId) {
+      setSelectedListingId(listingFromQuery)
+    }
+  }, [listingFromQuery, selectedListingId])
 
   useEffect(() => {
     if (!selectedListingId) {
@@ -246,9 +258,33 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
     }
   }
 
+  const handleClosePreview = () => {
+    setSelectedListingId(null)
+    if (!listingFromQuery) {
+      return
+    }
+    const params = new URLSearchParams(route.search?.startsWith('?') ? route.search.slice(1) : route.search ?? '')
+    params.delete('listing_id')
+    const query = params.toString()
+    const target = query ? `${route.pathname}?${query}` : route.pathname || '/catalog'
+    withViewTransition(() => onNavigate(target, { replace: true }))
+  }
+
   const meta = data?.meta
   const totalLabel = meta ? `${meta.total} предложений` : 'Каталог'
   const initialGuests = formState.guests ? Number(formState.guests) || undefined : undefined
+  const priceFilterLabel =
+    formState.rentalTerm === 'long_term'
+      ? 'Цена за месяц'
+      : formState.rentalTerm === 'short_term'
+        ? 'Цена за ночь'
+        : 'Цена за ночь/месяц'
+
+  const handleResetFilters = () => {
+    const nextState = { ...DEFAULT_STATE, page: 1 }
+    setFormState(nextState)
+    applyStateToUrl(nextState)
+  }
 
   return (
     <div className="min-h-screen bg-dusty-mauve-50 text-dusty-mauve-900">
@@ -261,9 +297,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
         <main className="relative z-10 space-y-6 pb-16">
           {chatError && (
             <div className="container">
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-soft">
-                {chatError}
-              </div>
+              <StateCard variant="error" title="Не удалось открыть чат" description={chatError} />
             </div>
           )}
           <section className="container space-y-4 pt-8">
@@ -354,7 +388,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs uppercase text-dry-sage-600">Цена за ночь</p>
+                  <p className="text-xs uppercase text-dry-sage-600">{priceFilterLabel}</p>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       type="number"
@@ -423,16 +457,13 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
 
           <section className="container space-y-4">
             {error && (
-              <div className="rounded-3xl border border-cream-200 bg-cream-50/70 p-4 text-sm text-dusty-mauve-700">
-                <p>{error}</p>
-                <button
-                  type="button"
-                  onClick={refresh}
-                  className="mt-3 rounded-full border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold uppercase text-dusty-mauve-600 hover:border-dry-sage-400 hover:text-dry-sage-700"
-                >
-                  Попробовать снова
-                </button>
-              </div>
+              <StateCard
+                variant="error"
+                title="Каталог временно недоступен"
+                description={error}
+                actionLabel="Попробовать снова"
+                onAction={refresh}
+              />
             )}
 
             <div
@@ -452,23 +483,23 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                   const isChatLoading = chatLoadingId === card.record.id
                   const contactButtonDisabled = isOwnListing || isChatLoading
                   const contactButtonLabel = isOwnListing
-                    ? '??? ???? ??????????'
+                    ? 'Ваше объявление'
                     : isChatLoading
-                      ? '????????? ???...'
-                      : '???????? ????????????'
+                      ? 'Открываем чат...'
+                      : 'Написать арендодателю'
                   return (
                     <article
                       key={card.record.id}
                       className="grid gap-4 rounded-3xl border border-dusty-mauve-100 bg-white/90 p-5 shadow-sm sm:grid-cols-[1.2fr_0.8fr]"
                     >
-                    <div className="space-y-3">
+                      <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs uppercase text-dry-sage-600">
                         <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
                           {card.record.property_type || 'жильё'}
                         </span>
                         {user?.id && card.record.host_id === user.id && (
                           <span className="rounded-full bg-dusty-mauve-900 px-3 py-1 text-dusty-mauve-50">
-                            ???? ??????????
+                            Ваше объявление
                           </span>
                         )}
                         {card.record.tags?.slice(0, 3).map((tag) => (
@@ -539,7 +570,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                       </div>
                       {typeof card.summary.rating === 'number' && card.summary.rating > 0 && (
                         <span className="inline-flex w-fit items-center gap-1 rounded-full bg-dry-sage-100 px-3 py-1 text-xs font-semibold text-dry-sage-700">
-                          ⭐ {card.summary.rating.toFixed(1)}
+                          ★ {card.summary.rating.toFixed(1)}
                         </span>
                       )}
                     </div>
@@ -547,9 +578,13 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
                 )
               })
               ) : (
-                <div className="rounded-3xl border border-dusty-mauve-100 bg-white/90 p-6 text-sm text-dusty-mauve-600">
-                  По запросу ничего не найдено. Измените фильтры или даты, чтобы увидеть доступные варианты.
-                </div>
+                <StateCard
+                  variant="empty"
+                  title="По запросу ничего не найдено"
+                  description="Измените фильтры или даты, чтобы увидеть доступные варианты."
+                  actionLabel="Сбросить фильтры"
+                  onAction={handleResetFilters}
+                />
               )}
             </div>
 
@@ -590,7 +625,7 @@ export function CatalogPage({ route, onNavigate }: CatalogPageProps) {
         initialCheckOut={formState.checkOut}
         initialGuests={initialGuests}
         onNavigate={onNavigate}
-      onClose={() => withViewTransition(() => setSelectedListingId(null))}
+        onClose={handleClosePreview}
       />
     </div>
   )

@@ -90,6 +90,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const [form, setForm] = useState<HostListingPayload>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [savingError, setSavingError] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
   const [statusNote, setStatusNote] = useState<string | null>(null)
   const [noMaxNights, setNoMaxNights] = useState(false)
@@ -101,6 +102,24 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   const updateForm = (patch: Partial<HostListingPayload>) => setForm((prev) => ({ ...prev, ...patch }))
   const updateAddress = (patch: Partial<HostListingPayload['address']>) =>
     setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }))
+  const clearFieldError = (key: string) => {
+    setFormErrors((prev) => {
+      if (!prev[key]) {
+        return prev
+      }
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+  const updateField = (key: keyof HostListingPayload, value: any) => {
+    updateForm({ [key]: value } as Partial<HostListingPayload>)
+    clearFieldError(String(key))
+  }
+  const updateAddressField = (key: keyof HostListingPayload['address'], value: any) => {
+    updateAddress({ [key]: value } as Partial<HostListingPayload['address']>)
+    clearFieldError(`address.${String(key)}`)
+  }
 
   useEffect(() => {
     setPhotoUploadError(null)
@@ -146,6 +165,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
       })
       setNoMaxNights(listingDetail.max_nights === 0)
       setStatusNote(`Статус: ${listingDetail.status}`)
+      setFormErrors({})
     }
   }, [listingDetail, listingId])
 
@@ -158,9 +178,16 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
   }, [listingId, shouldRefreshPriceSuggestion, fetchPriceSuggestion])
 
   const handleSave = async () => {
+    const adjustedForm = { ...form, max_nights: noMaxNights ? 0 : form.max_nights }
+    const validationErrors = validateListingForm(adjustedForm, { mode: 'save' })
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors)
+      setSavingError('Проверьте отмеченные поля')
+      return
+    }
     setSaving(true)
     setSavingError(null)
-    const payload = preparePayload(form)
+    const payload = preparePayload(adjustedForm)
     try {
       const response = isEditMode
         ? await updateHostListing(listingId!, payload)
@@ -184,7 +211,15 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
       setSavingError('Сохраните черновик, чтобы опубликовать')
       return
     }
+    const adjustedForm = { ...form, max_nights: noMaxNights ? 0 : form.max_nights }
+    const validationErrors = validateListingForm(adjustedForm, { mode: 'publish' })
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors)
+      setSavingError('Проверьте отмеченные поля перед публикацией')
+      return
+    }
     setSaving(true)
+    setSavingError(null)
     setPublishSuccess(null)
     try {
       const response = await publishHostListing(listingId)
@@ -280,58 +315,94 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
           <div className="space-y-6">
             <Section title="Основное">
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Название" value={form.title} onChange={(value) => updateForm({ title: value })} />
+                <Input
+                  label="Название"
+                  value={form.title}
+                  onChange={(value) => updateField('title', value)}
+                  error={formErrors.title}
+                />
                 <Select
                   label="Тип жилья"
                   value={form.property_type}
                   options={propertyTypes}
-                  onChange={(value) => updateForm({ property_type: value })}
+                  onChange={(value) => updateField('property_type', value)}
+                  error={formErrors.property_type}
                 />
                 <Select
                   label="Тип аренды"
                   value={form.rental_term}
                   options={rentalTermOptions.map((opt) => opt.value)}
                   optionLabels={Object.fromEntries(rentalTermOptions.map((opt) => [opt.value, opt.label]))}
-                  onChange={(value) => updateForm({ rental_term: value || 'long_term' })}
+                  onChange={(value) => updateField('rental_term', value || 'long_term')}
+                  error={formErrors.rental_term}
                 />
                 <Input
                   label="Гостей"
                   type="number"
                   value={form.guests_limit}
-                  onChange={(value) => updateForm({ guests_limit: Number(value) || 1 })}
+                  onChange={(value) => updateField('guests_limit', Number(value) || 1)}
+                  error={formErrors.guests_limit}
                 />
                 <Input
                   label="Спален"
                   type="number"
                   value={form.bedrooms}
-                  onChange={(value) => updateForm({ bedrooms: Number(value) || 0 })}
+                  onChange={(value) => updateField('bedrooms', Number(value) || 0)}
                 />
                 <Input
                   label="Санузлов"
                   type="number"
                   value={form.bathrooms}
-                  onChange={(value) => updateForm({ bathrooms: Number(value) || 0 })}
+                  onChange={(value) => updateField('bathrooms', Number(value) || 0)}
                 />
               </div>
             </Section>
 
             <Section title="Локация">
               <div className="grid gap-4 md:grid-cols-2">
-                <Input label="Адрес, строка 1" value={form.address.line1} onChange={(value) => updateAddress({ line1: value })} />
-                <Input label="Адрес, строка 2" value={form.address.line2} onChange={(value) => updateAddress({ line2: value })} />
-                <Input label="Город" value={form.address.city} onChange={(value) => updateAddress({ city: value })} />
+                <Input
+                  label="Адрес, строка 1"
+                  value={form.address.line1}
+                  onChange={(value) => updateAddressField('line1', value)}
+                  error={formErrors['address.line1']}
+                />
+                <Input
+                  label="Адрес, строка 2"
+                  value={form.address.line2}
+                  onChange={(value) => updateAddressField('line2', value)}
+                />
+                <Input
+                  label="Город"
+                  value={form.address.city}
+                  onChange={(value) => updateAddressField('city', value)}
+                  error={formErrors['address.city']}
+                />
                 <Input
                   label="Регион / страна"
                   value={form.address.region}
-                  onChange={(value) => updateAddress({ region: value, country: form.address.country || value })}
+                  onChange={(value) => {
+                    updateAddress({ region: value, country: form.address.country || value })
+                    clearFieldError('address.region')
+                  }}
+                  error={formErrors['address.region']}
                 />
-                <Input label="Широта" type="number" value={form.address.lat} onChange={(value) => updateAddress({ lat: Number(value) || 0 })} />
-                <Input label="Долгота" type="number" value={form.address.lon} onChange={(value) => updateAddress({ lon: Number(value) || 0 })} />
+                <Input
+                  label="Широта"
+                  type="number"
+                  value={form.address.lat}
+                  onChange={(value) => updateAddressField('lat', Number(value) || 0)}
+                />
+                <Input
+                  label="Долгота"
+                  type="number"
+                  value={form.address.lon}
+                  onChange={(value) => updateAddressField('lon', Number(value) || 0)}
+                />
                 <Input
                   label="Минут до центра/транспорта"
                   type="number"
                   value={form.travel_minutes}
-                  onChange={(value) => updateForm({ travel_minutes: Math.max(0, Number(value) || 0) })}
+                  onChange={(value) => updateField('travel_minutes', Math.max(0, Number(value) || 0))}
                   hint="Используется в ML-рекомендации"
                 />
                 <Select
@@ -339,7 +410,7 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                   value={form.travel_mode || 'car'}
                   options={travelModes.map((item) => item.value)}
                   optionLabels={Object.fromEntries(travelModes.map((item) => [item.value, item.label]))}
-                  onChange={(value) => updateForm({ travel_mode: value || 'car' })}
+                  onChange={(value) => updateField('travel_mode', value || 'car')}
                 />
               </div>
             </Section>
@@ -350,37 +421,41 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                   label="Площадь (м²)"
                   type="number"
                   value={form.area_sq_m}
-                  onChange={(value) => updateForm({ area_sq_m: Number(value) || 0 })}
+                  onChange={(value) => updateField('area_sq_m', Number(value) || 0)}
                 />
                 <Input
                   label="Этаж"
                   type="number"
                   value={form.floor}
-                  onChange={(value) => updateForm({ floor: Number(value) || 0 })}
+                  onChange={(value) => updateField('floor', Number(value) || 0)}
+                  error={formErrors.floor}
                 />
                 <Input
                   label="Этажность дома"
                   type="number"
                   value={form.floors_total}
-                  onChange={(value) => updateForm({ floors_total: Number(value) || 0 })}
+                  onChange={(value) => updateField('floors_total', Number(value) || 0)}
+                  error={formErrors.floors_total}
                 />
                 <Input
                   label="Оценка ремонта (0-10)"
                   type="number"
                   value={form.renovation_score}
-                  onChange={(value) => updateForm({ renovation_score: Number(value) || 0 })}
+                  onChange={(value) => updateField('renovation_score', Number(value) || 0)}
+                  error={formErrors.renovation_score}
                 />
                 <Input
                   label="Возраст дома (лет)"
                   type="number"
                   value={form.building_age_years}
-                  onChange={(value) => updateForm({ building_age_years: Number(value) || 0 })}
+                  onChange={(value) => updateField('building_age_years', Number(value) || 0)}
+                  error={formErrors.building_age_years}
                 />
                 <Input
                   label="Доступно с"
                   type="date"
                   value={form.available_from}
-                  onChange={(value) => updateForm({ available_from: value })}
+                  onChange={(value) => updateField('available_from', value)}
                 />
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -388,19 +463,30 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                   label="Мин. ночей"
                   type="number"
                   value={form.min_nights}
-                  onChange={(value) => updateForm({ min_nights: Math.max(1, Number(value) || 1) })}
+                  onChange={(value) => updateField('min_nights', Math.max(1, Number(value) || 1))}
                   disabled={noMaxNights}
+                  error={formErrors.min_nights}
                 />
                 <Input
                   label="Макс. ночей"
                   type="number"
                   value={noMaxNights ? 0 : form.max_nights}
-                  onChange={(value) => setForm((prev) => ({ ...prev, max_nights: Math.max(prev.min_nights, Number(value) || 0) }))}
+                  onChange={(value) => updateField('max_nights', Math.max(form.min_nights, Number(value) || 0))}
                   disabled={noMaxNights}
                   hint="0 = без ограничения"
+                  error={formErrors.max_nights}
                 />
                 <label className="flex items-center gap-2 text-sm text-dusty-mauve-700">
-                  <input type="checkbox" checked={noMaxNights} onChange={(e) => setNoMaxNights(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={noMaxNights}
+                    onChange={(event) => {
+                      setNoMaxNights(event.target.checked)
+                      if (event.target.checked) {
+                        clearFieldError('max_nights')
+                      }
+                    }}
+                  />
                   Без ограничения максимума ночей
                 </label>
                 <p className="text-xs text-dry-sage-500">{nightRangeLabel}</p>
@@ -408,29 +494,29 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
             </Section>
 
             <Section title="Описание и удобства">
-              <Textarea label="Описание" value={form.description} onChange={(value) => updateForm({ description: value })} rows={4} />
+              <Textarea label="Описание" value={form.description} onChange={(value) => updateField('description', value)} rows={4} />
               <Textarea
                 label="Удобства (по одному на строку)"
                 value={form.amenities.join('\n')}
-                onChange={(value) => updateForm({ amenities: splitLines(value) })}
+                onChange={(value) => updateField('amenities', splitLines(value))}
                 rows={3}
               />
               <Textarea
                 label="Правила (по одному на строку)"
                 value={form.house_rules.join('\n')}
-                onChange={(value) => updateForm({ house_rules: splitLines(value) })}
+                onChange={(value) => updateField('house_rules', splitLines(value))}
                 rows={3}
               />
               <Textarea
                 label="Теги (по одному на строку)"
                 value={form.tags.join('\n')}
-                onChange={(value) => updateForm({ tags: splitLines(value) })}
+                onChange={(value) => updateField('tags', splitLines(value))}
                 rows={3}
               />
               <Textarea
                 label="Хайлайты (по одному на строку)"
                 value={form.highlights.join('\n')}
-                onChange={(value) => updateForm({ highlights: splitLines(value) })}
+                onChange={(value) => updateField('highlights', splitLines(value))}
                 rows={3}
               />
             </Section>
@@ -474,7 +560,8 @@ export function HostListingWizardPage({ route, onNavigate }: HostListingWizardPa
                 label={form.rental_term === 'long_term' ? 'Цена за месяц (руб.)' : 'Цена за ночь (руб.)'}
                 type="number"
                 value={Math.round(form.rate_rub)}
-                onChange={(value) => updateForm({ rate_rub: Math.round(Number(value)) || 0 })}
+                onChange={(value) => updateField('rate_rub', Math.round(Number(value)) || 0)}
+                error={formErrors.rate_rub}
               />
               <div className="rounded-2xl border border-dusty-mauve-200 bg-white/70 p-4">
                 <div className="flex items-center justify-between">
@@ -528,6 +615,7 @@ function Input({
   type = 'text',
   disabled,
   hint,
+  error,
 }: {
   label: string
   value: any
@@ -535,6 +623,7 @@ function Input({
   type?: string
   disabled?: boolean
   hint?: string
+  error?: string
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm text-dusty-mauve-700">
@@ -544,9 +633,13 @@ function Input({
         value={value}
         onChange={(event) => onChange(type === 'number' ? Number(event.target.value) : event.target.value)}
         disabled={disabled}
-        className="rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
+        aria-invalid={Boolean(error)}
+        className={`rounded-2xl border bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900 outline-none transition ${
+          error ? 'border-red-300 focus:border-red-400' : 'border-white/60 focus:border-dry-sage-400'
+        }`}
       />
-      {hint && <span className="text-xs text-dry-sage-500">{hint}</span>}
+      {error && <span className="text-xs text-red-600">{error}</span>}
+      {hint && !error && <span className="text-xs text-dry-sage-500">{hint}</span>}
     </label>
   )
 }
@@ -558,6 +651,7 @@ function Select({
   onChange,
   disabled,
   optionLabels,
+  error,
 }: {
   label: string
   value: string
@@ -565,6 +659,7 @@ function Select({
   onChange: (value: string) => void
   disabled?: boolean
   optionLabels?: Record<string, string>
+  error?: string
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm text-dusty-mauve-700">
@@ -573,14 +668,18 @@ function Select({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
+        aria-invalid={Boolean(error)}
+        className={`rounded-2xl border bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900 outline-none transition ${
+          error ? 'border-red-300 focus:border-red-400' : 'border-white/60 focus:border-dry-sage-400'
+        }`}
       >
         {options.map((option) => (
           <option key={option || 'empty'} value={option}>
-            {optionLabels?.[option] || option || '—'}
+            {optionLabels?.[option] || option || '-'}
           </option>
         ))}
       </select>
+      {error && <span className="text-xs text-red-600">{error}</span>}
     </label>
   )
 }
@@ -590,11 +689,13 @@ function Textarea({
   value,
   onChange,
   rows = 3,
+  error,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   rows?: number
+  error?: string
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm text-dusty-mauve-700">
@@ -603,8 +704,12 @@ function Textarea({
         rows={rows}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-2xl border border-white/60 bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900"
+        aria-invalid={Boolean(error)}
+        className={`rounded-2xl border bg-white/80 px-4 py-2 text-sm text-dusty-mauve-900 outline-none transition ${
+          error ? 'border-red-300 focus:border-red-400' : 'border-white/60 focus:border-dry-sage-400'
+        }`}
       />
+      {error && <span className="text-xs text-red-600">{error}</span>}
     </label>
   )
 }
@@ -724,6 +829,69 @@ function preparePayload(form: HostListingPayload) {
     thumbnail_url: cover || undefined,
     available_from: form.available_from ? new Date(form.available_from).toISOString() : undefined,
   }
+}
+
+type ListingValidationMode = 'save' | 'publish'
+
+function validateListingForm(
+  form: HostListingPayload,
+  options: { mode: ListingValidationMode },
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const isPublish = options.mode === 'publish'
+
+  if (!form.title.trim()) {
+    errors.title = 'Укажите название'
+  }
+  if (!form.property_type.trim()) {
+    errors.property_type = 'Выберите тип жилья'
+  }
+  if (form.rental_term !== 'short_term' && form.rental_term !== 'long_term') {
+    errors.rental_term = 'Выберите тип аренды'
+  }
+  if (form.guests_limit < 1) {
+    errors.guests_limit = 'Минимум 1 гость'
+  }
+  if (form.min_nights < 1) {
+    errors.min_nights = 'Минимум 1 ночь'
+  }
+  if (form.max_nights < 0) {
+    errors.max_nights = 'Максимум не может быть отрицательным'
+  }
+  if (form.max_nights > 0 && form.min_nights > form.max_nights) {
+    errors.max_nights = 'Максимум должен быть не меньше минимума'
+  }
+  if (form.rate_rub < 0) {
+    errors.rate_rub = 'Цена не может быть отрицательной'
+  }
+  if (isPublish && form.rate_rub <= 0) {
+    errors.rate_rub = 'Укажите цену'
+  }
+  if (form.floor < 0) {
+    errors.floor = 'Этаж не может быть отрицательным'
+  }
+  if (form.floors_total < form.floor) {
+    errors.floors_total = 'Этажность должна быть не ниже этажа'
+  }
+  if (form.renovation_score < 0 || form.renovation_score > 10) {
+    errors.renovation_score = 'Диапазон от 0 до 10'
+  }
+  if (form.building_age_years < 0) {
+    errors.building_age_years = 'Возраст не может быть отрицательным'
+  }
+  if (isPublish) {
+    if (!form.address.line1.trim()) {
+      errors['address.line1'] = 'Укажите адрес'
+    }
+    if (!form.address.city.trim()) {
+      errors['address.city'] = 'Укажите город'
+    }
+    if (!form.address.region.trim()) {
+      errors['address.region'] = 'Укажите регион'
+    }
+  }
+
+  return errors
 }
 
 function formatMoney(rub: number) {

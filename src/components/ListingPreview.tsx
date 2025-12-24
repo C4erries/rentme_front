@@ -5,6 +5,7 @@ import { createBooking } from '../lib/bookingApi'
 import { ApiError } from '../lib/api'
 import { createListingConversation } from '../lib/chatApi'
 import { useAuth } from '../context/AuthContext'
+import { StateCard } from './StateCard'
 import type { Listing } from '../types/listing'
 import type { Review } from '../types/review'
 
@@ -150,7 +151,7 @@ export function ListingPreview({
 
   const handleContactHost = async () => {
     if (isOwned) {
-      setChatError('??? ???? ??????????')
+      setChatError('Это ваше объявление.')
       return
     }
     setChatError(null)
@@ -227,69 +228,73 @@ export function ListingPreview({
         <div className="max-h-[72vh] overflow-y-auto pr-2">
           <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
-            <div className="space-y-1">
-              <p className="text-xs uppercase text-dry-sage-600">Краткое описание</p>
-              <h3 className="text-2xl font-semibold text-dusty-mauve-900">{title}</h3>
-              {isOwned && (
-                <span className="mt-2 inline-flex w-fit rounded-full bg-dusty-mauve-900 px-3 py-1 text-xs font-semibold uppercase text-dusty-mauve-50">
-                  ???? ??????????
-                </span>
-              )}
-              <p className="text-sm text-dusty-mauve-500">{location}</p>
-            </div>
-
-            <p className="text-sm text-dusty-mauve-700">{description}</p>
-
-            {chips.length > 0 && (
-              <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase text-dusty-mauve-600">
-                {chips.map((chip) => (
-                  <span key={chip} className="rounded-full bg-dusty-mauve-50 px-3 py-1">
-                    {chip}
+              <div className="space-y-1">
+                <p className="text-xs uppercase text-dry-sage-600">Краткое описание</p>
+                <h3 className="text-2xl font-semibold text-dusty-mauve-900">{title}</h3>
+                {isOwned && (
+                  <span className="mt-2 inline-flex w-fit rounded-full bg-dusty-mauve-900 px-3 py-1 text-xs font-semibold uppercase text-dusty-mauve-50">
+                    Ваше объявление
                   </span>
-                ))}
+                )}
+                <p className="text-sm text-dusty-mauve-500">{location}</p>
               </div>
-            )}
 
-            {ratingValue && ratingValue > 0 && (
-              <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-dusty-mauve-900">
-                <span className="inline-flex items-center gap-1 rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
-                  {ratingValue.toFixed(1)} ?
-                </span>
-                {reviewsData?.total ? (
-                  <span className="text-xs font-normal uppercase text-dry-sage-600">{reviewsData.total} отзыв(ов)</span>
+              <p className="text-sm text-dusty-mauve-700">{description}</p>
+
+              {chips.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase text-dusty-mauve-600">
+                  {chips.map((chip) => (
+                    <span key={chip} className="rounded-full bg-dusty-mauve-50 px-3 py-1">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {ratingValue && ratingValue > 0 && (
+                <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-dusty-mauve-900">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-800">
+                    {ratingValue.toFixed(1)} ★
+                  </span>
+                  {reviewsData?.total ? (
+                    <span className="text-xs font-normal uppercase text-dry-sage-600">
+                      {reviewsData.total} отзыв(ов)
+                    </span>
+                  ) : (
+                    <span className="text-xs font-normal uppercase text-dry-sage-600">Ещё нет отзывов</span>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-xs uppercase text-dry-sage-600">Отзывы гостей</p>
+                {reviewsLoading ? (
+                  <div className="h-16 animate-pulse rounded-2xl bg-dusty-mauve-100/40" />
+                ) : reviewsError ? (
+                  <p className="text-sm text-red-600">{reviewsError}</p>
+                ) : reviewsData?.items?.length ? (
+                  <ul className="space-y-2">
+                    {reviewsData.items.map((review: Review) => (
+                      <li
+                        key={review.id}
+                        className="rounded-2xl border border-dusty-mauve-100 bg-white/80 p-3 text-sm text-dusty-mauve-800"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-dusty-mauve-900">{review.rating} ★</span>
+                          <span className="text-xs text-dusty-mauve-500">
+                            {new Date(review.created_at).toLocaleDateString('ru-RU')}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-dusty-mauve-700">{review.text || 'Без текста'}</p>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <span className="text-xs font-normal uppercase text-dry-sage-600">Ещё нет отзывов</span>
+                  <p className="text-sm text-dusty-mauve-500">
+                    Пока нет отзывов - вы можете стать первым гостем.
+                  </p>
                 )}
               </div>
-            )}
-
-            <div className="space-y-2">
-              <p className="text-xs uppercase text-dry-sage-600">Отзывы гостей</p>
-              {reviewsLoading ? (
-                <div className="h-16 animate-pulse rounded-2xl bg-dusty-mauve-100/40" />
-              ) : reviewsError ? (
-                <p className="text-sm text-red-600">{reviewsError}</p>
-              ) : reviewsData?.items?.length ? (
-                <ul className="space-y-2">
-                  {reviewsData.items.map((review: Review) => (
-                    <li
-                      key={review.id}
-                      className="rounded-2xl border border-dusty-mauve-100 bg-white/80 p-3 text-sm text-dusty-mauve-800"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-dusty-mauve-900">{review.rating} ?</span>
-                        <span className="text-xs text-dusty-mauve-500">
-                          {new Date(review.created_at).toLocaleDateString('ru-RU')}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-dusty-mauve-700">{review.text || 'Без текста'}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-dusty-mauve-500">Пока нет отзывов — вы можете стать первым гостем.</p>
-              )}
-            </div>
 
             <div className="space-y-2">
               <p className="text-xs uppercase text-dry-sage-600">Удобства</p>
@@ -424,9 +429,7 @@ export function ListingPreview({
             </div>
 
             {error && (
-              <div className="rounded-2xl border border-cream-200 bg-cream-50/70 p-3 text-sm text-dusty-mauve-700">
-                {error}
-              </div>
+              <StateCard variant="error" title="Не удалось загрузить объявление" description={error} />
             )}
 
             <div className="flex flex-wrap gap-3">
@@ -436,7 +439,7 @@ export function ListingPreview({
                 disabled={chatLoading || isOwned}
                 className="inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800 disabled:opacity-60"
               >
-                {isOwned ? '??? ???? ??????????' : chatLoading ? '????????? ???...' : '???????? ????????????'}
+                {isOwned ? 'Ваше объявление' : chatLoading ? 'Открываем чат...' : 'Написать арендодателю'}
               </button>
               <a
                 href={`mailto:care@rentme.app?subject=Rentme%20-%20Listing%20${listingId}`}

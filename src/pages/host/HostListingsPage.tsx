@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from 'react'
 import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { publishHostListing, unpublishHostListing } from '../../lib/hostListingApi'
 import { useHostListings } from '../../hooks/useHostListings'
 import { withViewTransition } from '../../lib/viewTransitions'
@@ -70,7 +71,6 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
           <div>
             <p className="text-xs uppercase tracking-widest text-dry-sage-400">Ваши объявления</p>
             <h1 className="text-3xl font-semibold text-dusty-mauve-900">Мои объявления</h1>
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <select
@@ -94,7 +94,26 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
           </div>
         </div>
 
-        {loading && <p className="mt-6 text-sm text-dusty-mauve-600">Загрузка...</p>}
+        {error && !loading && (
+          <div className="mt-6">
+            <StateCard
+              variant="error"
+              title="Не удалось загрузить объявления"
+              description={error}
+              actionLabel="Повторить"
+              onAction={refresh}
+            />
+          </div>
+        )}
+        {loading && (
+          <div className="mt-6">
+            <StateCard
+              variant="loading"
+              title="Загружаем объявления"
+              description="Собираем данные по вашим объектам."
+            />
+          </div>
+        )}
         {actionError && <p className="mt-2 text-sm text-red-600">{actionError}</p>}
 
         <div className="mt-6 grid gap-4">
@@ -163,6 +182,15 @@ export function HostListingsPage({ onNavigate }: HostListingsPageProps) {
               </div>
             </article>
           ))}
+          {!loading && items.length === 0 && (
+            <StateCard
+              variant="empty"
+              title="Пока нет объявлений"
+              description="Создайте первую карточку, чтобы получать бронирования."
+              actionLabel="Создать объявление"
+              onAction={() => withViewTransition(() => onNavigate('/host/listings/new'))}
+            />
+          )}
         </div>
       </div>
     </div>

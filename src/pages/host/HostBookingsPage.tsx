@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { useHostBookings } from '../../hooks/useHostBookings'
 import { confirmHostBooking, declineHostBooking } from '../../lib/hostBookingApi'
 import { createBookingConversation } from '../../lib/chatApi'
@@ -13,15 +14,15 @@ const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
 })
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Ожидает подтверждения',
+  PENDING: 'Ждет подтверждения',
   ACCEPTED: 'Принята',
   CONFIRMED: 'Подтверждена',
   DECLINED: 'Отклонена',
   CANCELLED: 'Отменена',
-  CHECKED_IN: 'Заезд состоялся',
-  CHECKED_OUT: 'Выезд завершен',
+  CHECKED_IN: 'Заселение',
+  CHECKED_OUT: 'Завершена',
   EXPIRED: 'Истекла',
-  NO_SHOW: 'Неявка гостя',
+  NO_SHOW: 'Гость не приехал',
 }
 
 interface HostBookingsPageProps {
@@ -105,22 +106,41 @@ export function HostBookingsPage({ onNavigate }: HostBookingsPageProps) {
           </button>
         </div>
 
-        {loading && <p className="mt-8 text-sm text-dusty-mauve-500">Загружаем заявки...</p>}
-        {error && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">{error}</div>
-        )}
         {chatError && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
-            {chatError}
+          <div className="mt-6">
+            <StateCard variant="error" title="Чат временно недоступен" description={chatError} />
+          </div>
+        )}
+        {error && !loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="error"
+              title="Не удалось загрузить заявки"
+              description={error}
+              actionLabel="Повторить"
+              onAction={() => withViewTransition(refresh)}
+            />
+          </div>
+        )}
+        {loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="loading"
+              title="Загружаем заявки"
+              description="Проверяем новые запросы от гостей."
+            />
           </div>
         )}
 
         {!loading && bookings.length === 0 && (
-          <div className="mt-10 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-8 text-center">
-            <p className="text-lg font-semibold text-dusty-mauve-900">Пока нет заявок на бронирование.</p>
-            <p className="mt-2 text-sm text-dusty-mauve-500">
-              Как только гость отправит запрос, он появится здесь — вы сможете подтвердить или отклонить бронь.
-            </p>
+          <div className="mt-6">
+            <StateCard
+              variant="empty"
+              title="Пока нет заявок на бронирование"
+              description="Когда гость отправит запрос, он появится в этом списке."
+              actionLabel="Создать объявление"
+              onAction={() => withViewTransition(() => onNavigate('/host/listings/new'))}
+            />
           </div>
         )}
 
@@ -164,9 +184,10 @@ export function HostBookingsPage({ onNavigate }: HostBookingsPageProps) {
                       Создано {new Date(booking.created_at).toLocaleDateString('ru-RU')}
                     </span>
                   </div>
-                  <div className="flex items-baseline gap-2 text-dusty-mauve-900">
+                  <div className="flex flex-wrap items-baseline gap-2 text-dusty-mauve-900">
                     <p className="text-2xl font-semibold">{formatMoney(booking)}</p>
                     <span className="text-sm text-dusty-mauve-500">к оплате</span>
+                    <span className="text-sm text-dusty-mauve-400">{formatPriceUnitLabel(booking)}</span>
                   </div>
                   <button
                     type="button"
@@ -208,14 +229,25 @@ export function HostBookingsPage({ onNavigate }: HostBookingsPageProps) {
 }
 
 function formatDateRange(booking: HostBookingSummary) {
-  const start = dateFormatter.format(new Date(booking.check_in))
-  const end = dateFormatter.format(new Date(booking.check_out))
+  const startDate = new Date(booking.check_in)
+  if (Number.isNaN(startDate.getTime())) {
+    return 'Даты уточняются'
+  }
+  const start = dateFormatter.format(startDate)
+  if (booking.price_unit === 'month' && booking.months && booking.months > 0) {
+    return `Заезд ${start}`
+  }
+  const endDate = new Date(booking.check_out)
+  if (Number.isNaN(endDate.getTime())) {
+    return `Заезд ${start}`
+  }
+  const end = dateFormatter.format(endDate)
   return `${start} - ${end}`
 }
 
 function formatStayLabel(booking: HostBookingSummary) {
   if (booking.price_unit === 'month' && booking.months && booking.months > 0) {
-    return `${booking.months} мес.`
+    return `на ${booking.months} мес.`
   }
   return ''
 }
@@ -229,4 +261,22 @@ function formatMoney(booking: HostBookingSummary) {
     maximumFractionDigits: 0,
   })
   return formatter.format(Math.round(amount))
+}
+
+function formatPriceUnitLabel(booking: HostBookingSummary) {
+  const unit = normalizePriceUnit(booking.price_unit)
+  if (unit === 'month') {
+    return 'тариф: месяц'
+  }
+  if (unit === 'night') {
+    return 'тариф: ночь'
+  }
+  return 'тариф уточняется'
+}
+
+function normalizePriceUnit(unit?: string) {
+  if (unit === 'month' || unit === 'night') {
+    return unit
+  }
+  return ''
 }

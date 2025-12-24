@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Header } from '../../components/Header'
 import { useGuestBookings } from '../../hooks/useGuestBookings'
 import { submitReview } from '../../lib/reviewsApi'
 import { createBookingConversation } from '../../lib/chatApi'
 import { ApiError } from '../../lib/api'
 import { withViewTransition } from '../../lib/viewTransitions'
+import { StateCard } from '../../components/StateCard'
 import type { GuestBookingSummary } from '../../types/booking'
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
@@ -24,6 +25,14 @@ const statusLabels: Record<string, string> = {
   NO_SHOW: 'Гость не приехал',
 }
 
+type BookingTab = 'upcoming' | 'past' | 'cancelled'
+
+const bookingTabLabels: Record<BookingTab, string> = {
+  upcoming: 'Предстоящие',
+  past: 'Прошлые',
+  cancelled: 'Отмененные',
+}
+
 interface ReviewFormState {
   rating: string
   text: string
@@ -39,9 +48,46 @@ interface GuestBookingsPageProps {
 export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
   const { data, loading, error, refresh } = useGuestBookings()
   const bookings = data?.items ?? []
+  const [activeTab, setActiveTab] = useState<BookingTab>('upcoming')
   const [reviewForms, setReviewForms] = useState<Record<string, ReviewFormState>>({})
   const [chatLoadingId, setChatLoadingId] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
+  const bookingsRef = useRef<HTMLDivElement | null>(null)
+
+  const groupedBookings = useMemo(() => groupBookings(bookings), [bookings])
+  const visibleBookings = groupedBookings[activeTab]
+  const reviewTargets = useMemo(() => bookings.filter(needsReview), [bookings])
+  const emptyState = useMemo(() => {
+    if (visibleBookings.length > 0) {
+      return null
+    }
+    if (bookings.length === 0) {
+      return {
+        title: 'Пока нет бронирований',
+        description: 'Подберите даты и город в каталоге, чтобы оформить первую поездку.',
+        actionLabel: 'Перейти в каталог',
+      }
+    }
+    if (activeTab === 'upcoming') {
+      return {
+        title: 'Нет предстоящих бронирований',
+        description: 'Выберите новое жилье или переключитесь на прошлые поездки.',
+        actionLabel: 'Подобрать жильё',
+      }
+    }
+    if (activeTab === 'past') {
+      return {
+        title: 'Пока нет завершенных поездок',
+        description: 'Когда поездка завершится, вы сможете оставить отзыв здесь.',
+        actionLabel: 'Перейти в каталог',
+      }
+    }
+    return {
+      title: 'Нет отмененных бронирований',
+      description: 'Здесь будут отображаться отмененные или отклоненные заявки.',
+      actionLabel: 'Перейти в каталог',
+    }
+  }, [activeTab, bookings.length, visibleBookings.length])
 
   const getFormState = (bookingId: string): ReviewFormState => {
     return reviewForms[bookingId] || { rating: '5', text: '' }
@@ -82,7 +128,7 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         const redirectTarget = `/login?redirect=${encodeURIComponent('/me/bookings')}`
-        setChatError('????? ???????????, ????? ??????? ???')
+        setChatError('Нужна авторизация, чтобы открыть чат')
         withViewTransition(() => onNavigate(redirectTarget))
       } else {
         setChatError((err as Error).message)
@@ -110,87 +156,175 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
           </button>
         </div>
 
-        {chatError && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">
-            {chatError}
-          </div>
-        )}
-
-        {loading && <p className="mt-8 text-sm text-dusty-mauve-500">Загружаем бронирования...</p>}
-        {error && (
-          <div className="mt-6 rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-700">{error}</div>
-        )}
-
-        {!loading && bookings.length === 0 && (
-          <div className="mt-10 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-8 text-center">
-            <p className="text-lg font-semibold text-dusty-mauve-900">У вас пока нет активных бронирований</p>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-soft">
+            <p className="text-xs uppercase tracking-widest text-dry-sage-500">Сообщения</p>
+            <h2 className="mt-2 text-xl font-semibold text-dusty-mauve-900">Мои чаты</h2>
             <p className="mt-2 text-sm text-dusty-mauve-500">
-              Подберите дату и город в каталоге, мы покажем доступные квартиры, лофты и дома.
+              Быстрый переход в список диалогов с хостами и администраторами.
             </p>
             <button
               type="button"
-              onClick={() => withViewTransition(() => onNavigate('/catalog'))}
-              className="mt-4 inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-6 py-3 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+              onClick={() => withViewTransition(() => onNavigate('/me/chats'))}
+              className="mt-4 inline-flex items-center justify-center rounded-full border border-dusty-mauve-200 px-5 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400"
             >
-              Перейти в каталог
+              Перейти в чаты
             </button>
+          </div>
+          <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-soft">
+            <p className="text-xs uppercase tracking-widest text-dry-sage-500">Отзывы</p>
+            <h2 className="mt-2 text-xl font-semibold text-dusty-mauve-900">
+              {reviewTargets.length > 0 ? 'Нужно оставить отзывы' : 'Пока всё оценено'}
+            </h2>
+            <p className="mt-2 text-sm text-dusty-mauve-500">
+              {reviewTargets.length > 0
+                ? `У вас ${reviewTargets.length} бронирований без отзыва.`
+                : 'Когда завершите поездку, здесь появится напоминание.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (reviewTargets.length > 0) {
+                  setActiveTab('past')
+                  bookingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                } else {
+                  withViewTransition(() => onNavigate('/catalog'))
+                }
+              }}
+              className="mt-4 inline-flex items-center justify-center rounded-full bg-dusty-mauve-900 px-5 py-2 text-sm font-semibold text-dusty-mauve-50 transition hover:bg-dusty-mauve-800"
+            >
+              {reviewTargets.length > 0 ? 'Перейти к отзывам' : 'Подобрать жильё'}
+            </button>
+          </div>
+        </div>
+
+        {chatError && (
+          <div className="mt-6">
+            <StateCard variant="error" title="Чат временно недоступен" description={chatError} />
+          </div>
+        )}
+        {error && !loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="error"
+              title="Не удалось загрузить бронирования"
+              description={error}
+              actionLabel="Повторить"
+              onAction={() => withViewTransition(refresh)}
+            />
+          </div>
+        )}
+        {loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="loading"
+              title="Загружаем бронирования"
+              description="Проверяем актуальные поездки и статусы."
+            />
           </div>
         )}
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          {bookings.map((booking) => {
-            const isChatLoadingForBooking = chatLoadingId === booking.id
-            return (
-              <article
-                key={booking.id}
-                className="flex flex-col overflow-hidden rounded-3xl border border-white/50 bg-white/80 shadow-soft"
-              >
-                <div
-                  className="h-48 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${booking.listing.thumbnail_url || ''})` }}
-                />
-                <div className="flex flex-col gap-4 p-6">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-dry-sage-500">
-                      {booking.listing.city}, {booking.listing.region || booking.listing.country}
+        <div className="mt-10" ref={bookingsRef}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-dry-sage-400">Мои брони</p>
+              <h2 className="text-2xl font-semibold text-dusty-mauve-900">История поездок</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(bookingTabLabels) as BookingTab[]).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    activeTab === tab
+                      ? 'bg-dusty-mauve-900 text-dusty-mauve-50'
+                      : 'border border-dusty-mauve-200 text-dusty-mauve-900 hover:border-dry-sage-400'
+                  }`}
+                >
+                  {bookingTabLabels[tab]} · {groupedBookings[tab].length}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {!loading && !error && emptyState && (
+            <div className="mt-6">
+              <StateCard
+                variant="empty"
+                title={emptyState.title}
+                description={emptyState.description}
+                actionLabel={emptyState.actionLabel}
+                onAction={() => withViewTransition(() => onNavigate('/catalog'))}
+              />
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            {visibleBookings.map((booking) => {
+              const isChatLoadingForBooking = chatLoadingId === booking.id
+              return (
+                <article
+                  key={booking.id}
+                  className="flex flex-col overflow-hidden rounded-3xl border border-white/50 bg-white/80 shadow-soft"
+                >
+                  <div
+                    className="h-48 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${booking.listing.thumbnail_url || ''})` }}
+                  />
+                  <div className="flex flex-col gap-4 p-6">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-dry-sage-500">
+                        {booking.listing.city}, {booking.listing.region || booking.listing.country}
+                      </p>
+                      <h2 className="text-xl font-semibold text-dusty-mauve-900">{booking.listing.title}</h2>
+                      <p className="text-sm text-dusty-mauve-500">{booking.listing.address_line1}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-dusty-mauve-600">
+                      <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-700">
+                        {statusLabels[booking.status] ?? booking.status}
+                      </span>
+                      <span>
+                        {formatDateRange(booking)}
+                        {formatStayLabel(booking) && <span className="ml-2 text-dusty-mauve-400">·</span>}
+                        {formatStayLabel(booking)}
+                        <span className="ml-2 text-dusty-mauve-400">·</span>
+                        {booking.guests} гостя
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-baseline gap-2 text-dusty-mauve-900">
+                      <p className="text-2xl font-semibold">{formatMoney(booking)}</p>
+                      <span className="text-sm text-dusty-mauve-500">за бронирование</span>
+                      <span className="text-sm text-dusty-mauve-400">{formatPriceUnitLabel(booking)}</span>
+                    </div>
+                    <p className="text-xs uppercase tracking-widest text-dry-sage-400">
+                      Создано {new Date(booking.created_at).toLocaleDateString('ru-RU')}
                     </p>
-                    <h2 className="text-xl font-semibold text-dusty-mauve-900">{booking.listing.title}</h2>
-                    <p className="text-sm text-dusty-mauve-500">{booking.listing.address_line1}</p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenChat(booking)}
+                        disabled={isChatLoadingForBooking}
+                        className="inline-flex items-center rounded-full border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400 disabled:opacity-60"
+                      >
+                        {isChatLoadingForBooking ? 'Чат загружается...' : 'Перейти в чат'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          withViewTransition(() => onNavigate(`/catalog?listing_id=${booking.listing.id}`))
+                        }
+                        className="inline-flex items-center rounded-full border border-dry-sage-400 px-4 py-2 text-sm font-semibold text-dry-sage-700 transition hover:bg-dry-sage-50"
+                      >
+                        Открыть объявление
+                      </button>
+                    </div>
+                    {renderReviewBlock(booking, getFormState(booking.id), handleSubmitReview, updateFormState)}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-dusty-mauve-600">
-                    <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-dry-sage-700">
-                      {statusLabels[booking.status] ?? booking.status}
-                    </span>
-                    <span>
-                      {formatDateRange(booking)}
-                      {formatStayLabel(booking) && <span className="ml-2 text-dusty-mauve-400">·</span>}
-                      {formatStayLabel(booking)}
-                      <span className="ml-2 text-dusty-mauve-400">·</span>
-                      {booking.guests} гостя
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-2 text-dusty-mauve-900">
-                    <p className="text-2xl font-semibold">{formatMoney(booking)}</p>
-                    <span className="text-sm text-dusty-mauve-500">за бронирование</span>
-                  </div>
-                  <p className="text-xs uppercase tracking-widest text-dry-sage-400">
-                    Создано {new Date(booking.created_at).toLocaleDateString('ru-RU')}
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenChat(booking)}
-                      disabled={isChatLoadingForBooking}
-                      className="inline-flex items-center rounded-full border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-900 transition hover:border-dry-sage-400 disabled:opacity-60"
-                    >
-                      {isChatLoadingForBooking ? 'Чат загружается...' : 'Перейти в чат'}
-                    </button>
-                  </div>
-                  {renderReviewBlock(booking, getFormState(booking.id), handleSubmitReview, updateFormState)}
-                </div>
-              </article>
-            )
-          })}
+                </article>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -262,14 +396,25 @@ function renderReviewBlock(
 }
 
 function formatDateRange(booking: GuestBookingSummary) {
-  const start = dateFormatter.format(new Date(booking.check_in))
-  const end = dateFormatter.format(new Date(booking.check_out))
-  return `${start} — ${end}`
+  const startDate = new Date(booking.check_in)
+  if (Number.isNaN(startDate.getTime())) {
+    return 'Даты уточняются'
+  }
+  const start = dateFormatter.format(startDate)
+  if (booking.price_unit === 'month' && booking.months && booking.months > 0) {
+    return `Заезд ${start}`
+  }
+  const endDate = new Date(booking.check_out)
+  if (Number.isNaN(endDate.getTime())) {
+    return `Заезд ${start}`
+  }
+  const end = dateFormatter.format(endDate)
+  return `${start} - ${end}`
 }
 
 function formatStayLabel(booking: GuestBookingSummary) {
   if (booking.price_unit === 'month' && booking.months && booking.months > 0) {
-    return `${booking.months} ???.`
+    return `на ${booking.months} мес.`
   }
   return ''
 }
@@ -283,4 +428,56 @@ function formatMoney(booking: GuestBookingSummary) {
     maximumFractionDigits: 0,
   })
   return formatter.format(Math.round(amount))
+}
+
+function formatPriceUnitLabel(booking: GuestBookingSummary) {
+  const unit = normalizePriceUnit(booking.price_unit)
+  if (unit === 'month') {
+    return 'тариф: месяц'
+  }
+  if (unit === 'night') {
+    return 'тариф: ночь'
+  }
+  return 'тариф уточняется'
+}
+
+function normalizePriceUnit(unit?: string) {
+  if (unit === 'month' || unit === 'night') {
+    return unit
+  }
+  return ''
+}
+
+function needsReview(booking: GuestBookingSummary) {
+  const stayFinished = new Date(booking.check_out).getTime() <= Date.now()
+  const reviewSent = booking.review_submitted
+  const canReview = booking.can_review ?? stayFinished
+  return canReview && !reviewSent
+}
+
+function groupBookings(bookings: GuestBookingSummary[]) {
+  const result: Record<BookingTab, GuestBookingSummary[]> = {
+    upcoming: [],
+    past: [],
+    cancelled: [],
+  }
+  bookings.forEach((booking) => {
+    result[resolveBookingBucket(booking)].push(booking)
+  })
+  return result
+}
+
+function resolveBookingBucket(booking: GuestBookingSummary): BookingTab {
+  const status = booking.status
+  if (status === 'DECLINED' || status === 'CANCELLED') {
+    return 'cancelled'
+  }
+  if (status === 'CHECKED_OUT' || status === 'EXPIRED' || status === 'NO_SHOW') {
+    return 'past'
+  }
+  const checkout = new Date(booking.check_out)
+  if (!Number.isNaN(checkout.getTime()) && checkout.getTime() < Date.now()) {
+    return 'past'
+  }
+  return 'upcoming'
 }

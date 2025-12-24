@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Header } from '../../components/Header'
+import { StateCard } from '../../components/StateCard'
 import { getAdminUsers } from '../../lib/adminApi'
 import { createDirectConversation } from '../../lib/chatApi'
 import { withViewTransition } from '../../lib/viewTransitions'
@@ -19,6 +20,7 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [chatTarget, setChatTarget] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -44,7 +46,7 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
         }
       })
     return () => controller.abort()
-  }, [debouncedSearch])
+  }, [debouncedSearch, reloadToken])
 
   const subtitle = useMemo(() => {
     if (debouncedSearch) {
@@ -96,7 +98,26 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
           <div className="text-sm text-dusty-mauve-500">{loading ? 'Загрузка...' : `${users.length} записей`}</div>
         </div>
 
-        {error && <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && !loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="error"
+              title="Не удалось загрузить пользователей"
+              description={error}
+              actionLabel="Повторить"
+              onAction={() => setReloadToken((token) => token + 1)}
+            />
+          </div>
+        )}
+        {loading && (
+          <div className="mt-4">
+            <StateCard
+              variant="loading"
+              title="Загружаем пользователей"
+              description="Проверяем актуальные роли и статусы."
+            />
+          </div>
+        )}
 
         <div className="mt-6 overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-soft">
           <div className="hidden grid-cols-5 bg-dusty-mauve-50/70 px-6 py-3 text-sm font-semibold text-dusty-mauve-700 sm:grid">
@@ -138,8 +159,14 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
               </div>
             ))}
             {!loading && users.length === 0 && (
-              <div className="px-6 py-8 text-center text-sm text-dusty-mauve-600">
-                Пользователей не найдено. Попробуйте изменить запрос.
+              <div className="px-6 py-8">
+                <StateCard
+                  variant="empty"
+                  title="Пользователи не найдены"
+                  description="Попробуйте изменить запрос или очистить фильтр."
+                  actionLabel="Сбросить поиск"
+                  onAction={() => setSearch('')}
+                />
               </div>
             )}
           </div>

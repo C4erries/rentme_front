@@ -9,9 +9,8 @@ interface HeaderProps {
   hasUnreadChats?: boolean
 }
 
-const navLinks = [
+const baseLinks = [
   { label: 'Каталог', hint: 'Подберите варианты по датам и району', href: '/catalog' },
-  { label: 'Как это работает', hint: 'Пошаговый разбор для гостей и хостов', href: '/how-it-works' },
   { label: 'Истории гостей', hint: 'Отзывы и впечатления арендаторов', href: '/stories' },
 ]
 
@@ -21,8 +20,23 @@ export function Header({ onNavigate, hasUnreadChats }: HeaderProps) {
   const { isAuthenticated, user, logout } = useAuth()
   const isHost = Boolean(user?.roles?.includes('host'))
   const isAdmin = Boolean(user?.roles?.includes('admin'))
-  const unreadChats = typeof hasUnreadChats === 'boolean' ? hasUnreadChats : useChatBadge()
+  const chatBadge = useChatBadge()
+  const unreadChats = typeof hasUnreadChats === 'boolean' ? hasUnreadChats : chatBadge
   const unreadDotClass = unreadChats ? 'bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.35)]' : 'bg-dry-sage-500'
+  const dashboardLinks = isAuthenticated
+    ? [
+        { label: 'Мои брони', hint: 'История поездок и статусы', href: '/me/bookings' },
+        { label: 'Сообщения', hint: 'Диалоги с хостами', href: '/me/chats' },
+        { label: 'Личный кабинет', hint: 'Профиль и быстрые действия', href: '/me/bookings' },
+      ]
+    : []
+  const hostLinks = isHost
+    ? [
+        { label: 'Мои объявления', hint: 'Управление объектами', href: '/host/listings' },
+        { label: 'Запросы на бронь', hint: 'Входящие заявки', href: '/host/bookings' },
+      ]
+    : []
+  const navLinks = [...baseLinks, ...dashboardLinks, ...hostLinks]
 
   const handleLink = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('/')) {
