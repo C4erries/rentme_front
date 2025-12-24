@@ -26,6 +26,10 @@ export interface GuestBookingSummary {
   created_at: string
   review_submitted?: boolean
   can_review?: boolean
+  review_id?: string
+  review_rating?: number
+  review_text?: string
+  review_created_at?: string
 }
 
 export interface GuestBookingCollection {

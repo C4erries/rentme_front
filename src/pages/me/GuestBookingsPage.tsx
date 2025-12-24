@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Header } from '../../components/Header'
 import { useGuestBookings } from '../../hooks/useGuestBookings'
-import { submitReview } from '../../lib/reviewsApi'
+import { submitReview, updateReview } from '../../lib/reviewsApi'
 import { createBookingConversation } from '../../lib/chatApi'
 import { ApiError } from '../../lib/api'
 import { withViewTransition } from '../../lib/viewTransitions'
@@ -39,6 +39,7 @@ interface ReviewFormState {
   submitting?: boolean
   error?: string | null
   success?: boolean
+  editing?: boolean
 }
 
 interface GuestBookingsPageProps {
@@ -110,13 +111,50 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
     updateFormState(booking.id, { submitting: true, error: null })
     try {
       await submitReview(booking.id, ratingValue, form.text?.trim() || undefined)
-      updateFormState(booking.id, { success: true })
+      updateFormState(booking.id, { success: true, editing: false })
       withViewTransition(refresh)
     } catch (err) {
       updateFormState(booking.id, { error: (err as Error).message, success: false })
     } finally {
       updateFormState(booking.id, { submitting: false })
     }
+  }
+
+  const handleUpdateReview = async (booking: GuestBookingSummary) => {
+    const form = getFormState(booking.id)
+    const ratingValue = Number(form.rating)
+    if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
+      updateFormState(booking.id, { error: 'Поставьте оценку от 1 до 5' })
+      return
+    }
+    if (!booking.review_id) {
+      updateFormState(booking.id, { error: 'Не нашли отзыв для редактирования.' })
+      return
+    }
+    updateFormState(booking.id, { submitting: true, error: null })
+    try {
+      await updateReview(booking.review_id, ratingValue, form.text?.trim() || undefined)
+      updateFormState(booking.id, { editing: false })
+      withViewTransition(refresh)
+    } catch (err) {
+      updateFormState(booking.id, { error: (err as Error).message })
+    } finally {
+      updateFormState(booking.id, { submitting: false })
+    }
+  }
+
+  const handleStartEditReview = (booking: GuestBookingSummary) => {
+    updateFormState(booking.id, {
+      rating: String(booking.review_rating ?? 5),
+      text: booking.review_text ?? '',
+      editing: true,
+      error: null,
+      success: false,
+    })
+  }
+
+  const handleCancelEditReview = (bookingId: string) => {
+    updateFormState(bookingId, { editing: false, error: null })
   }
 
   const handleOpenChat = async (booking: GuestBookingSummary) => {
@@ -319,7 +357,15 @@ export function GuestBookingsPage({ onNavigate }: GuestBookingsPageProps) {
                         Открыть объявление
                       </button>
                     </div>
-                    {renderReviewBlock(booking, getFormState(booking.id), handleSubmitReview, updateFormState)}
+                    {renderReviewBlock(
+                      booking,
+                      getFormState(booking.id),
+                      handleSubmitReview,
+                      handleUpdateReview,
+                      handleStartEditReview,
+                      handleCancelEditReview,
+                      updateFormState,
+                    )}
                   </div>
                 </article>
               )
@@ -335,13 +381,48 @@ function renderReviewBlock(
   booking: GuestBookingSummary,
   form: ReviewFormState,
   onSubmit: (booking: GuestBookingSummary) => void,
+  onUpdate: (booking: GuestBookingSummary) => void,
+  onStartEdit: (booking: GuestBookingSummary) => void,
+  onCancelEdit: (bookingId: string) => void,
   updateForm: (id: string, patch: Partial<ReviewFormState>) => void,
 ) {
   const stayFinished = new Date(booking.check_out).getTime() <= Date.now()
-  const reviewSent = booking.review_submitted || form.success
+  const reviewSent = booking.review_submitted || Boolean(booking.review_id) || form.success
   const canReview = (booking.can_review ?? stayFinished) && !reviewSent
+  const isEditMode = Boolean(form.editing && booking.review_id)
 
-  if (reviewSent) {
+  if (reviewSent && !isEditMode) {
+    if (booking.review_id) {
+      const ratingLabel = booking.review_rating ? `${booking.review_rating}/5` : '—'
+      const hasText = Boolean(booking.review_text?.trim())
+      return (
+        <div className="rounded-2xl border border-dry-sage-100 bg-dry-sage-50/60 px-4 py-3 text-sm text-dry-sage-800">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-dry-sage-500">Отзыв</p>
+              <p className="mt-1 text-sm text-dry-sage-700">Оценка: {ratingLabel}</p>
+              {hasText ? (
+                <p className="mt-2 text-sm text-dry-sage-700">{booking.review_text}</p>
+              ) : (
+                <p className="mt-2 text-sm text-dry-sage-600">Отзыв без текста</p>
+              )}
+              {booking.review_created_at && (
+                <p className="mt-2 text-xs text-dry-sage-500">
+                  Оставлен {new Date(booking.review_created_at).toLocaleDateString('ru-RU')}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onStartEdit(booking)}
+              className="inline-flex items-center rounded-full border border-dry-sage-300 px-3 py-1 text-xs font-semibold text-dry-sage-700 transition hover:border-dry-sage-400"
+            >
+              Редактировать
+            </button>
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="rounded-2xl border border-dry-sage-100 bg-dry-sage-50/60 px-4 py-3 text-sm text-dry-sage-800">
         Отзыв отправлен, спасибо!
@@ -349,13 +430,13 @@ function renderReviewBlock(
     )
   }
 
-  if (!canReview) {
+  if (!canReview && !isEditMode) {
     return null
   }
 
   return (
     <div className="rounded-2xl border border-dusty-mauve-100 bg-dusty-mauve-50/70 p-4 text-sm">
-      <p className="font-semibold text-dusty-mauve-900">Оставить отзыв</p>
+      <p className="font-semibold text-dusty-mauve-900">{isEditMode ? 'Редактировать отзыв' : 'Оставить отзыв'}</p>
       <div className="mt-3 flex flex-wrap gap-3">
         <label className="flex items-center gap-2">
           <span className="text-xs uppercase text-dry-sage-600">Оценка</span>
@@ -375,7 +456,7 @@ function renderReviewBlock(
       <textarea
         value={form.text}
         onChange={(event) => updateForm(booking.id, { text: event.target.value })}
-        placeholder="Поделитесь, что понравилось или что улучшить"
+        placeholder={isEditMode ? 'Обновите отзыв' : 'Поделитесь, что понравилось или что улучшить'}
         className="mt-3 w-full rounded-2xl border border-dusty-mauve-100 bg-white px-3 py-2 text-sm text-dusty-mauve-900 outline-none transition focus:border-dry-sage-400"
         rows={3}
       />
@@ -384,12 +465,23 @@ function renderReviewBlock(
         <button
           type="button"
           disabled={form.submitting}
-          onClick={() => onSubmit(booking)}
+          onClick={() => (isEditMode ? onUpdate(booking) : onSubmit(booking))}
           className="rounded-full bg-dusty-mauve-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-dusty-mauve-800 disabled:opacity-60"
         >
-          {form.submitting ? 'Отправляем...' : 'Отправить отзыв'}
+          {form.submitting ? 'Сохраняем...' : isEditMode ? 'Сохранить изменения' : 'Отправить отзыв'}
         </button>
-        <p className="text-xs text-dusty-mauve-500">Доступно после завершения проживания</p>
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => onCancelEdit(booking.id)}
+            className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-sm font-semibold text-dusty-mauve-700 transition hover:border-dry-sage-400"
+          >
+            Отменить
+          </button>
+        )}
+        <p className="text-xs text-dusty-mauve-500">
+          {isEditMode ? 'Редактирование доступно в любое время (демо).' : 'Доступно после завершения проживания'}
+        </p>
       </div>
     </div>
   )

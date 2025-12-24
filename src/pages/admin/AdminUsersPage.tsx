@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Header } from '../../components/Header'
 import { StateCard } from '../../components/StateCard'
-import { getAdminUsers } from '../../lib/adminApi'
+import { blockAdminUser, getAdminUsers, unblockAdminUser } from '../../lib/adminApi'
 import { createDirectConversation } from '../../lib/chatApi'
 import { withViewTransition } from '../../lib/viewTransitions'
 import type { UserProfile } from '../../types/user'
@@ -19,7 +19,9 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [chatTarget, setChatTarget] = useState<string | null>(null)
+  const [blockTarget, setBlockTarget] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -69,6 +71,32 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
     }
   }
 
+  const handleToggleBlock = async (user: UserProfile) => {
+    if (!user?.id) {
+      return
+    }
+    const nextBlocked = !user.blocked
+    const confirmed = window.confirm(
+      nextBlocked
+        ? `Заблокировать пользователя ${user.email}? Он не сможет войти в систему.`
+        : `Разблокировать пользователя ${user.email}?`,
+    )
+    if (!confirmed) {
+      return
+    }
+    setActionError(null)
+    setBlockTarget(user.id)
+    try {
+      const response = nextBlocked ? await blockAdminUser(user.id) : await unblockAdminUser(user.id)
+      const updated = response.data
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, ...updated } : item)))
+    } catch (err) {
+      setActionError((err as Error).message || 'Не удалось обновить статус')
+    } finally {
+      setBlockTarget(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-dusty-mauve-50">
       <Header onNavigate={onNavigate} />
@@ -82,6 +110,22 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
           <div className="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-dusty-mauve-900 shadow-soft">
             Всего: {total}
           </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => withViewTransition(() => onNavigate('/admin/users'))}
+            className="rounded-full bg-dusty-mauve-900 px-4 py-2 text-xs font-semibold uppercase text-dusty-mauve-50"
+          >
+            Пользователи
+          </button>
+          <button
+            type="button"
+            onClick={() => withViewTransition(() => onNavigate('/admin/metrics'))}
+            className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold uppercase text-dusty-mauve-700 transition hover:border-dry-sage-400"
+          >
+            ML метрики
+          </button>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 rounded-3xl border border-white/60 bg-white/80 p-4 shadow-soft sm:flex-row sm:items-center">
@@ -119,17 +163,27 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
           </div>
         )}
 
+        {actionError && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {actionError}
+          </div>
+        )}
+
         <div className="mt-6 overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-soft">
-          <div className="hidden grid-cols-5 bg-dusty-mauve-50/70 px-6 py-3 text-sm font-semibold text-dusty-mauve-700 sm:grid">
+          <div className="hidden grid-cols-6 bg-dusty-mauve-50/70 px-6 py-3 text-sm font-semibold text-dusty-mauve-700 sm:grid">
             <span>Email</span>
             <span>Имя</span>
             <span>Роли</span>
+            <span>Статус</span>
             <span>Создан</span>
             <span className="text-right">Действия</span>
           </div>
           <div className="divide-y divide-dusty-mauve-100">
             {users.map((user) => (
-              <div key={user.id} className="grid grid-cols-1 gap-3 px-4 py-4 text-sm text-dusty-mauve-900 sm:grid-cols-5 sm:items-center sm:px-6">
+              <div
+                key={user.id}
+                className="grid grid-cols-1 gap-3 px-4 py-4 text-sm text-dusty-mauve-900 sm:grid-cols-6 sm:items-center sm:px-6"
+              >
                 <div>
                   <p className="font-semibold">{user.email}</p>
                   <p className="text-xs text-dusty-mauve-500">ID: {user.id}</p>
@@ -142,11 +196,22 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
                     </span>
                   ))}
                 </div>
+                <div>
+                  {user.blocked ? (
+                    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase text-red-700">
+                      Заблокирован
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-dry-sage-100 px-3 py-1 text-xs font-semibold uppercase text-dry-sage-700">
+                      Активен
+                    </span>
+                  )}
+                </div>
                 <div className="text-sm text-dusty-mauve-600">
                   {new Date(user.created_at).toLocaleDateString('ru-RU')} <br className="sm:hidden" />
                   <span className="text-dusty-mauve-400">{new Date(user.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => handleWrite(user)}
@@ -154,6 +219,22 @@ export function AdminUsersPage({ onNavigate }: AdminUsersPageProps) {
                     className="inline-flex items-center gap-2 rounded-full bg-dusty-mauve-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-dusty-mauve-800 disabled:opacity-60"
                   >
                     {chatTarget === user.id ? 'Открываю...' : 'Написать'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleBlock(user)}
+                    disabled={blockTarget === user.id}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+                      user.blocked
+                        ? 'border border-dry-sage-200 text-dry-sage-700 hover:border-dry-sage-400'
+                        : 'border border-red-200 text-red-700 hover:border-red-300'
+                    }`}
+                  >
+                    {blockTarget === user.id
+                      ? 'Обновляем...'
+                      : user.blocked
+                        ? 'Разблокировать'
+                        : 'Заблокировать'}
                   </button>
                 </div>
               </div>

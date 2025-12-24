@@ -1,8 +1,12 @@
-import { apiGet, apiPost } from './api'
+import { apiGet, apiPost, apiPut } from './api'
 import type { Review, ReviewCollection } from '../types/review'
 
 export async function submitReview(bookingId: string, rating: number, text?: string) {
   return apiPost<Review>(`/bookings/${bookingId}/review`, { rating, text })
+}
+
+export async function updateReview(reviewId: string, rating: number, text?: string) {
+  return apiPut<Review>(`/reviews/${reviewId}`, { rating, text })
 }
 
 export async function getListingReviews(listingId: string, options?: { limit?: number; offset?: number }) {

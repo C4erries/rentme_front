@@ -93,10 +93,14 @@ function extractErrorMessage(payload: unknown, status: number): string {
   if (payload && typeof payload === 'object' && 'error' in payload) {
     const errorValue = Reflect.get(payload, 'error')
     if (typeof errorValue === 'string' && errorValue.trim().length > 0) {
+      const trimmed = errorValue.trim()
+      if (status === 401 && (trimmed === 'Неверный email или пароль' || trimmed === 'Аккаунт заблокирован')) {
+        return trimmed
+      }
       if (status >= 500 || status === 401 || status === 403) {
         return fallback
       }
-      return errorValue
+      return trimmed
     }
   }
   return fallback

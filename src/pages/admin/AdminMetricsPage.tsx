@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Header } from '../../components/Header'
 import { StateCard } from '../../components/StateCard'
 import { getMlMetrics } from '../../lib/adminApi'
+import { withViewTransition } from '../../lib/viewTransitions'
 import type { MlMetrics, ModelMetrics } from '../../types/admin'
 
 interface AdminMetricsPageProps {
@@ -41,6 +42,22 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
             <h1 className="text-3xl font-semibold text-dusty-mauve-900">Метрики моделей</h1>
             <p className="text-sm text-dusty-mauve-500">Качество short_term и long_term моделей на тестовых датасетах</p>
           </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => withViewTransition(() => onNavigate('/admin/users'))}
+            className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-xs font-semibold uppercase text-dusty-mauve-700 transition hover:border-dry-sage-400"
+          >
+            Пользователи
+          </button>
+          <button
+            type="button"
+            onClick={() => withViewTransition(() => onNavigate('/admin/metrics'))}
+            className="rounded-full bg-dusty-mauve-900 px-4 py-2 text-xs font-semibold uppercase text-dusty-mauve-50"
+          >
+            ML метрики
+          </button>
         </div>
 
         {error && !loading && (

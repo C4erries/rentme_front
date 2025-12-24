@@ -13,6 +13,7 @@ const cityOptions = [
   { label: 'Все города', value: '' },
   { label: 'Москва', value: 'Moscow' },
   { label: 'Санкт-Петербург', value: 'Saint Petersburg' },
+  { label: 'Краснодар', value: 'Краснодар' },
   { label: 'Прага', value: 'Prague' },
 ]
 
@@ -75,12 +76,6 @@ function ListingCard({ listing, onPreview }: { listing: Listing; onPreview: () =
             className="rounded-full border border-dusty-mauve-200 px-4 py-2 text-dusty-mauve-800 transition hover:border-dry-sage-400 hover:text-dry-sage-700"
           >
             Смотреть детали
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-transparent px-4 py-2 text-dry-sage-700 underline underline-offset-4"
-          >
-            Скачать досье дома
           </button>
         </div>
       </div>

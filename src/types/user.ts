@@ -3,6 +3,7 @@ export interface UserProfile {
   email: string
   name: string
   roles: string[]
+  blocked?: boolean
   created_at: string
   updated_at: string
 }

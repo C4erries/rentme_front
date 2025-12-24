@@ -1,6 +1,7 @@
-import { apiGet } from './api'
+import { apiGet, apiPost } from './api'
 import type { ApiRequestOptions } from './api'
 import type { MlMetrics, UserList } from '../types/admin'
+import type { UserProfile } from '../types/user'
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams()
@@ -28,4 +29,12 @@ export function getAdminUsers(params: { query?: string; limit?: number; offset?:
 
 export function getMlMetrics(options: ApiRequestOptions = {}) {
   return apiGet<MlMetrics>('/admin/ml/metrics', options)
+}
+
+export function blockAdminUser(userId: string, options: ApiRequestOptions = {}) {
+  return apiPost<UserProfile>(`/admin/users/${userId}/block`, {}, options)
+}
+
+export function unblockAdminUser(userId: string, options: ApiRequestOptions = {}) {
+  return apiPost<UserProfile>(`/admin/users/${userId}/unblock`, {}, options)
 }
