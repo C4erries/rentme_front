@@ -38,10 +38,25 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
       <div className="container py-12">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Админ · ML</p>
-            <h1 className="text-3xl font-semibold text-dusty-mauve-900">Метрики моделей</h1>
-            <p className="text-sm text-dusty-mauve-500">Качество short_term и long_term моделей на тестовых датасетах</p>
+            <p className="text-xs uppercase tracking-widest text-dry-sage-400">Раздел · ML</p>
+            <h1 className="text-3xl font-semibold text-dusty-mauve-900">ML‑метрики</h1>
+            <p className="text-sm text-dusty-mauve-500">
+              Показатели качества моделей для <span className="font-medium text-dusty-mauve-700">short_term</span> и{' '}
+              <span className="font-medium text-dusty-mauve-700">long_term</span>.
+            </p>
           </div>
+        </div>
+        <div className="mt-4 rounded-3xl border border-dusty-mauve-100 bg-white/80 p-5 text-sm text-dusty-mauve-700 shadow-soft">
+          <p className="font-semibold text-dusty-mauve-900">Откуда берутся метрики</p>
+          <p className="mt-1 text-dusty-mauve-600">
+            В ML‑сервисе датасет заранее разделён на <span className="font-medium text-dusty-mauve-700">train</span> и{' '}
+            <span className="font-medium text-dusty-mauve-700">test</span> (отдельные файлы для обучения и проверки). Модель
+            обучается на train‑части, а метрики считаются на test‑части — чтобы оценка отражала качество на “невидимых” данных.
+          </p>
+          <p className="mt-2 text-xs text-dusty-mauve-500">
+            Источник: <span className="font-mono">mlpricing</span> (<span className="font-mono">GET /metrics</span>), backend
+            проксирует в <span className="font-mono">GET /api/v1/admin/ml/metrics</span>.
+          </p>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -100,28 +115,74 @@ export function AdminMetricsPage({ onNavigate }: AdminMetricsPageProps) {
 }
 
 function MetricsCard({ title, metrics, accent }: { title: string; metrics: ModelMetrics; accent: string }) {
+  const isLongTerm = title.toLowerCase().includes('long')
+  const normalMae = isLongTerm ? 'обычно 10–30 тыс ₽ (демо)' : 'обычно 1–3 тыс ₽ (демо)'
+  const normalRmse = isLongTerm ? 'обычно 15–40 тыс ₽ (демо)' : 'обычно 2–4 тыс ₽ (демо)'
   return (
     <div className="rounded-3xl border border-white/60 bg-white/90 p-6 shadow-soft">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-dusty-mauve-900">{title}</h2>
         <span className={`h-2 w-10 rounded-full ${accent}`} />
       </div>
+      <p className="mt-2 text-sm text-dusty-mauve-600">MAE/RMSE — ошибки прогноза в рублях (RUB). Чем меньше, тем лучше.</p>
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-dusty-mauve-700">
-        <Metric label="MAE" value={metrics.mae} />
-        <Metric label="RMSE" value={metrics.rmse} />
-        <Metric label="Train size" value={metrics.train_size} />
-        <Metric label="Test size" value={metrics.test_size} />
+        <Metric
+          label="MAE"
+          value={metrics.mae}
+          unit="₽"
+          description="Средняя абсолютная ошибка. Понятная “средняя промашка” в рублях."
+          normal={normalMae}
+        />
+        <Metric
+          label="RMSE"
+          value={metrics.rmse}
+          unit="₽"
+          description="Ошибка с более сильным штрафом за большие промахи. Обычно ≥ MAE."
+          normal={normalRmse}
+        />
+        <Metric label="Train size" value={metrics.train_size} description="Сколько объектов было в train‑выборке." />
+        <Metric
+          label="Test size"
+          value={metrics.test_size}
+          description="Сколько объектов было в test‑выборке (на ней считаем метрики)."
+        />
       </div>
     </div>
   )
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  const formatted = typeof value === 'number' ? value.toFixed(value > 50 ? 0 : 2) : String(value)
+function Metric({
+  label,
+  value,
+  unit,
+  description,
+  normal,
+}: {
+  label: string
+  value: number
+  unit?: string
+  description?: string
+  normal?: string
+}) {
+  const formatted = formatMetricValue(label, value)
   return (
     <div className="rounded-2xl border border-dusty-mauve-100 bg-dusty-mauve-50/60 p-4">
       <p className="text-xs uppercase tracking-widest text-dry-sage-500">{label}</p>
-      <p className="text-lg font-semibold text-dusty-mauve-900">{formatted}</p>
+      <p className="text-lg font-semibold text-dusty-mauve-900">
+        {formatted}
+        {unit ? <span className="ml-1 text-sm font-semibold text-dusty-mauve-700">{unit}</span> : null}
+      </p>
+      {description ? <p className="mt-1 text-xs text-dusty-mauve-600">{description}</p> : null}
+      {normal ? <p className="mt-1 text-xs text-dusty-mauve-500">Нормально: {normal}</p> : null}
     </div>
   )
+}
+
+function formatMetricValue(label: string, value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  const normalized = label.trim().toLowerCase()
+  if (normalized.includes('size')) {
+    return Math.round(value).toString()
+  }
+  return Math.round(value).toString()
 }
